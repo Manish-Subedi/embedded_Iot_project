@@ -39,6 +39,20 @@ DigitalIoPin::DigitalIoPin(int port, int pin, bool input): port(port), pin(pin),
 
 	}
 }
+
+DigitalIoPin::DigitalIoPin(int port, int pin, int channel): port(port), pin(pin), input(true), pullup(true), invert(true){
+	Chip_IOCON_PinMuxSet(LPC_IOCON, port, pin, (IOCON_MODE_PULLUP | IOCON_DIGMODE_EN | IOCON_INV_EN));
+	Chip_GPIO_SetPinDIRInput(LPC_GPIO, port, pin);
+
+	Chip_INMUX_PinIntSel(channel, port, pin);
+	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(channel));
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(channel));
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(channel));
+
+	NVIC_ClearPendingIRQ((IRQn_Type)(PIN_INT0_IRQn + channel));
+	NVIC_EnableIRQ((IRQn_Type)(PIN_INT0_IRQn + channel));
+}
+
 bool DigitalIoPin::read(){
 	bool state = Chip_GPIO_GetPinState(LPC_GPIO, port, pin);
 	return state;

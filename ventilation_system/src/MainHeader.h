@@ -60,5 +60,10 @@ static volatile uint32_t systicks;
 #define SW2 PIN
 #define SW3_PORT 1
 #define SW3 PIN
+#define MAX_DEBOUNCE             30
+
+static volatile int button_pressed_time(0);
+static SimpleMenu menu;
+static ModeEdit *modes;
 
 #endif /* SRC_MAINHEADER_H_ */

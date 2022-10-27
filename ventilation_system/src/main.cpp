@@ -33,17 +33,52 @@ extern "C" {
 	{
 		return systicks;
 	}
-#if 0
+#if 1
 	/* Pin interrupt handler*/
 	void PIN_INT0_IRQHandler(void){
 		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(0));
 
+		// make sure up is only executed once on button debounce
+		if (millis() - button_pressed_time < MAX_DEBOUNCE) return;
+		button_pressed_time = millis();
+
+		menu.event(MenuItem::up);
 	}
 	void PIN_INT1_IRQHandler(void){
 		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(1));
+
+		// make sure up is only executed once on button debounce
+		if (millis() - button_pressed_time < MAX_DEBOUNCE) return;
+		button_pressed_time = millis();
+
+		printf((std::string("mode value: ") + std::to_string(modes->getValue()) + "\n").c_str());
+		if(menu.getPos() == 0) menu.event(MenuItem::ok);
+		//check if mode is auto
+		if(modes->getValue() == 0){
+			//allow setting pressure
+			if(menu.getPos() == 3) menu.event(MenuItem::ok);
+		}
+		if(modes->getValue() == 1){ //check if mode is manual
+			if(menu.getPos() == 4) menu.event(MenuItem::ok); //allow only set-frequency
+		}
 	}
 	void PIN_INT2_IRQHandler(void){
 		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(2));
+
+		// make sure up is only executed once on button debounce
+		if (millis() - button_pressed_time < MAX_DEBOUNCE) return;
+		button_pressed_time = millis();
+
+		menu.event(MenuItem::down);
+	}
+	void PIN_INT3_IRQHandler(void){
+		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(3));
+
+		// make sure up is only executed once on button debounce
+		if (millis() - button_pressed_time < MAX_DEBOUNCE) return;
+		button_pressed_time = millis();
+
+		menu.event(MenuItem::back);
 	}
 #endif
 
@@ -69,6 +104,7 @@ uint32_t millis() {
 uint16_t SDP_read();
 //void message_handler(MessageData*);
 
+
 int main(void) {
 
 #if defined (__USE_LPCOPEN)
@@ -81,49 +117,6 @@ int main(void) {
     // Set the LED to the state of "On"
     Board_LED_Set(0, true);
 #endif
-#endif
-
-#if 0
-    /* Initialize PININT driver */
-    Chip_PININT_Init(LPC_GPIO_PIN_INT);
-    /* Enable PININT clock */
-    Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_PININT);
-    /* Reset the PININT block */
-    Chip_SYSCTL_PeriphReset(RESET_PININT);
-
-
-    /* Map buttons to interrupt channels */
-    /* Chip_INMUX_PinIntSel(PININT_INDEX, port, pin); */
-    Chip_INMUX_PinIntSel(0, 1, 8);
-    Chip_INMUX_PinIntSel(1, 0, 5);
-    Chip_INMUX_PinIntSel(2, 0, 6);
-    Chip_INMUX_PinIntSel(3, 0, 7);
-
-    Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(0));
-	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(0));
-	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(0));
-
-	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(1));
-	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(1));
-	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(1));
-
-	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(2));
-	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(2));
-	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(2));
-
-	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(3));
-	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(3));
-	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(3));
-
-	/* Enable interrupt in the NVIC */
-	NVIC_ClearPendingIRQ(PIN_INT0_IRQn);
-	NVIC_EnableIRQ(PIN_INT0_IRQn);
-
-	NVIC_ClearPendingIRQ(PIN_INT1_IRQn);
-	NVIC_EnableIRQ(PIN_INT1_IRQn);
-
-	NVIC_ClearPendingIRQ(PIN_INT2_IRQn);
-	NVIC_EnableIRQ(PIN_INT2_IRQn);
 #endif
 
     // this call initializes debug uart for stdout redirection
@@ -154,12 +147,6 @@ int main(void) {
 	lcd->setCursor(0, 0);
 	lcd->print("LCD Ready!");
 
-	/* Configure buttons */
-	DigitalIoPin sw1(1, 8, true, true, true);
-	DigitalIoPin sw2(0, 5, true, true, true);
-	DigitalIoPin sw3(0, 6, true, true, true);
-	DigitalIoPin sw4(0, 7, true, true, true);
-
 #if 0
 
 	LpcPinMap none = {-1, -1}; // unused pin has negative values in it
@@ -172,10 +159,8 @@ int main(void) {
 	dbgu.write("\n\rHello World!\r\n"); //testing debug port
 #endif
 
-	SimpleMenu menu;
-
 	std::string options[2] = { "Auto", "Manual" };
-	ModeEdit *modes = new ModeEdit(lcd, std::string("Mode"), options, 2);
+	modes = new ModeEdit(lcd, std::string("Mode"), options, 2);
 	IntegerEdit *freq = new IntegerEdit(lcd, std::string("Frequency"), 0, 1000, 50);
 	IntegerEdit *pres = new IntegerEdit(lcd, std::string("Pressure"), 0, 120, 5);
 	IntegerEdit *t_pres = new IntegerEdit(lcd, std::string("Target Pressure"), 0, 120, 5 );
@@ -253,43 +238,11 @@ int main(void) {
     	current_pressure = (int) SDP_read();
     	current_freq = freq->getValue();
     	current_t_freq = t_freq->getValue();
-    	if(sw1.read()){
-			while(sw1.read());
-			if (!sw1.read()){
-				menu.event(MenuItem::up);
-			}
-		}
-		if(sw2.read()){
-			while(sw2.read());
-			if (!sw2.read()){
-				//allow switching between modes
-				if(menu.getPos() == 0) menu.event(MenuItem::ok);
-				//check if mode is auto
-				if(modes->getValue() == 0){
-					//allow setting pressure
-					if(menu.getPos() == 3) menu.event(MenuItem::ok);
-				}
-				if(modes->getValue() == 1){ //check if mode is manual
-					if(menu.getPos() == 4) menu.event(MenuItem::ok); //allow only set-frequency
-				}
-			}
-		}
-		if(sw3.read()){
-			while(sw3.read());
-			if (!sw3.read()){
-				menu.event(MenuItem::down);
-			}
-		}
-		if(sw4.read()){
-			while(sw4.read());
-			if (!sw4.read()){
-				menu.event(MenuItem::back);
-			}
-		}
+
 		if (IntegerEdit::saved_ == true || ModeEdit::saved_ == true) {
 			//if set pressure
 			if(menu.getPos() == 4){
-				if(current_t_freq != t_freq->getValue()){
+				if(current_freq != t_freq->getValue()){
 					freq->setValue(t_freq->getValue());
 					freq_fan.write(t_freq->getValue());
 					Sleep(2000);

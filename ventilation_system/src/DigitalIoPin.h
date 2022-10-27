@@ -12,6 +12,7 @@ class DigitalIoPin {
 	public:
 		DigitalIoPin(int port, int pin, bool input, bool pullup, bool invert);
 		DigitalIoPin(int port, int pin, bool input);
+		DigitalIoPin(int port, int pin, int channel);
 		DigitalIoPin(const DigitalIoPin &) = delete;
 		virtual ~DigitalIoPin();
 		bool read();
