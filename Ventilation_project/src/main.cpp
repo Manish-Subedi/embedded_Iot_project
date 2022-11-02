@@ -53,12 +53,12 @@ extern "C" {
 
 		if(menu.getPos() == 0) menu.event(MenuItem::ok);
 		//check if mode is auto
-		if(modes->getValue() == 0){
+		if(modes->getValue() == 1 && menu.getPos() == 3){
 			//allow setting pressure
-			if(menu.getPos() == 3) menu.event(MenuItem::ok);
+			menu.event(MenuItem::ok);
 		}
-		if(modes->getValue() == 1){ //check if mode is manual
-			if(menu.getPos() == 4) menu.event(MenuItem::ok); //allow only set-frequency
+		if(modes->getValue() == 0 && menu.getPos() == 4){ //check if mode is manual
+			menu.event(MenuItem::ok); //allow only set-frequency
 		}
 	}
 	void PIN_INT2_IRQHandler(void){
@@ -169,14 +169,14 @@ int main(void) {
 #endif
 	//dbgu.write("\n\rHello World!\r\n"); //testing debug port
 
-	std::string options[2] = { "Auto", "Manual" };
+	std::string options[2] = { "Manual", "Auto" };
 
 	modes = new StringEdit(&lcd, std::string("Mode"), options, 2);
 	IntegerEdit *freq = new IntegerEdit(&lcd, std::string("Frequency"), 0, 100, 2);
 	IntegerEdit *pres = new IntegerEdit(&lcd, std::string("Pressure"), 0, 120, 2);
 	IntegerEdit *t_pres = new IntegerEdit(&lcd, std::string("Target Pressure"), 0, 120, 1 );
-	IntegerEdit *t_freq = new IntegerEdit(&lcd, std::string("Target Freq"), 0, 100, 2);
-	IntegerEdit *temp = new IntegerEdit(&lcd, std::string("Temperature"), -50, 100, 1);
+	IntegerEdit *t_freq = new IntegerEdit(&lcd, std::string("Target Speed"), 0, 100, 2);
+	IntegerEdit *temp = new IntegerEdit(&lcd, std::string("Temperature"), 0, 100, 1);
 	IntegerEdit *rh = new IntegerEdit(&lcd, std::string("RH"), 0, 100, 1);
 	IntegerEdit *co2 = new IntegerEdit(&lcd, std::string("CO2"), 0, 1000, 10);
 
@@ -214,13 +214,11 @@ int main(void) {
 	/* LCD UI readings and control system config */
 	modes->setValue(0);
 	freq->setValue(0);
-	freq_fan.write(0); //instantly set fan speed
-	pres->setValue((int) SDP_read());
+	freq_fan.write(0);
+	pres->setValue(0);
 	t_pres->setValue(0);
 	temp->setValue(0);
-	//Sleep(2000);
 	rh->setValue(0);
-	//Sleep(2000);
 	co2->setValue(0);
 
 	char buffer[150];
@@ -232,7 +230,7 @@ int main(void) {
 	int current_freq = 0;
 	int spt_updated = 0;
 	char *m_sta[2] = { "false", "true" };
-	char *m_sta_mode[2] = { "true", "false" };
+	char *m_sta_mode[2] = { "false", "true" };
 
 	/* jsmn-JSON config */
 	jsmn_parser p;
@@ -241,123 +239,99 @@ int main(void) {
 	/* main loop */
     while(1) {
 		pres->setValue((int) SDP_read());
-
 		temp->setValue(temp_.read());
-		Sleep(10);
 		rh->setValue(rh_.read());
-		Sleep(50);
 		co2->setValue(co2_.read());
-		Sleep(50);
 
     	current_pressure = pres->getValue();
     	current_freq = freq->getValue();
+
 
 		if (IntegerEdit::saved_ == true || StringEdit::saved_ == true) {
 			//if set pressure
 			if(menu.getPos() == 4){
 				//checking if current speed is same as target
 				if(current_freq != t_freq->getValue()){
-
 					freq_fan.write(t_freq->getValue()*10);
-					Sleep(200);
+					Sleep(100);
 					freq->setValue(t_freq->getValue());
 					pres->setValue((int) SDP_read());
 				}
 			}
-			else if(menu.getPos() == 3)  {
-				if(t_pres->getValue() < current_pressure){
-						while(((int) SDP_read()) > t_pres->getValue()){
-							current_freq-=2;
-							freq_fan.write(current_freq*10);
-							Sleep(600);
-						}
-						freq->setValue(current_freq*10);
-					}
-				else if(t_pres->getValue() > current_pressure){
-						while(((int) SDP_read()) < t_pres->getValue()){
-							current_freq+=2;
-							freq_fan.write(current_freq*10);
-							Sleep(600);
-						}
-						freq->setValue(current_freq*10);
-					}
-			}
-			Sleep(1000);
+			Sleep(10);
 			menu.event(MenuItem::show);
 			IntegerEdit::saved_ = false;
 			StringEdit::saved_ = false;
 
 		}
-		Sleep(1000);
+
 #if 1
-		jsmn_init(&p);
+		if(mqtt_message_arrived){
 
-			if(mqtt_message_arrived){
-				mqtt_message_arrived = false;
-				printf((mqtt_message + "\r\n").c_str());
-				const char *mqtt_message_ = mqtt_message.c_str();
-				jsmn_parse(&p, mqtt_message_, 50, tokens, 10);
+			jsmn_init(&p);
+			mqtt_message_arrived = false;
+			printf((mqtt_message + "\r\n").c_str());
+			const char *mqtt_message_ = mqtt_message.c_str();
+			jsmn_parse(&p, mqtt_message_, 100, tokens, 256);
 
-				//check for the mode from Web UI
-				jsmntok_t key = tokens[2];
-				unsigned int length = key.end - key.start;
-				Sleep(20);
-				char set_mode[length + 1];
-				memcpy(set_mode, &mqtt_message_[key.start], length);
-				set_mode[length] = '\0';
-				printf("Key: %s\n", set_mode);
+			//check for the mode from Web UI
+			jsmntok_t key = tokens[2]; //the second token holds the mode (true/false)
+			unsigned int length = key.end - key.start;
+			char set_mode[length + 1];
+			memcpy(set_mode, &mqtt_message_[key.start], length);
+			set_mode[length] = '\0';
+			printf("Key: %s\n", set_mode);
 
 
-				//read the set value
-				jsmntok_t key_ = tokens[4];
-				unsigned int length_ = key_.end - key_.start;
-				Sleep(20);
-				char set_point[length_ + 1];
-				memcpy(set_point, &mqtt_message_[key_.start], length_);
-				set_point[length_] = '\0';
-				printf("Key: %s\n", set_point);
-				spt_updated = std::stoi(set_point);
+			//read the set value
+			jsmntok_t key_ = tokens[4]; //the 4th token holds the setpoint integer
+			unsigned int length_ = key_.end - key_.start;
+			char set_point[length_ + 1];
+			memcpy(set_point, &mqtt_message_[key_.start], length_);
+			set_point[length_] = '\0';
+			printf("Key: %s\n", set_point);
+			spt_updated = std::stoi(set_point);
 
-				if (strncmp("false", set_mode, 5) == 0) {
-					freq_fan.write(spt_updated*10);
-					Sleep(500);
-					freq->setValue(spt_updated);
-					t_freq->setValue(spt_updated);
-					modes->setValue(1);
-				}
-				else if (strncmp("true", set_mode, 4) == 0) {
-					t_pres->setValue(spt_updated);
-
-						if(t_pres->getValue() < current_pressure){
-							while(((int) SDP_read()) > t_pres->getValue()){
-								current_freq-=5;
-								freq_fan.write(current_freq*10);
-								Sleep(600);
-							}
-							freq->setValue(current_freq*10);
-
-						}
-
-						else if(t_pres->getValue() > current_pressure){
-							while(((int) SDP_read()) < t_pres->getValue()){
-								current_freq+=5;
-								freq_fan.write(current_freq*10);
-								Sleep(600);
-							}
-							freq->setValue(current_freq*10);
-
-						}
-						modes->setValue(0);
-				}
-				menu.event(MenuItem::show);
-				memset(tokens, 0, 256);
+			if (strncmp("false", set_mode, 5) == 0) {
+				freq_fan.write(spt_updated*10);
+				Sleep(500);
+				freq->setValue(spt_updated);
+				t_freq->setValue(spt_updated);
+				modes->setValue(0);
 			}
+			else if (strncmp("true", set_mode, 4) == 0) {
+				t_pres->setValue(spt_updated);
+				modes->setValue(1);
+			}
+			freq->setValue(current_freq*10);
+			menu.event(MenuItem::show);
+			memset(tokens, 0 , 256);
+		}
 #endif
+		if(modes->getValue() == 1){
+			int tolerance = 2;
+			printf("cf:%d s:%d  c:%d  t:%d\n",current_freq, freq->getValue(), current_pressure, t_pres->getValue());
+			if(abs(t_pres->getValue() - current_pressure) > tolerance){
+				double diff = (t_pres->getValue() - current_pressure) / (double)120;
+					signed int diff_ = (signed int)(diff * 50);
+					printf("d:%f d_:%d", diff, diff_);
+					current_freq += diff_;
+					/* limiting the values within the range */
+					if(current_freq > 100) current_freq = 100;
+					if(current_freq < 0) current_freq = 0;
+				}
+			freq_fan.write(current_freq*10);
+			Sleep(500);
+			freq->setValue(current_freq);
+			printf("nr:%d cf:%d s:%d  c:%d  t:%d\n",nr, current_freq, freq->getValue(), current_pressure, t_pres->getValue());
+		}
+
 		std::string sample = sample_json(nr, freq->getValue(), spt_updated, pres->getValue(), m_sta_mode[modes->getValue()], m_sta[mqtt_status], co2_.read(), rh_.read(), temp_.read());
 		mqtt_status = mqtt.publish(MQTT_TOPIC_SEND, sample, sample.length());
+
 		nr++;
 		menu.event(MenuItem::show);
-		mqtt.yield(2000);
+		//mqtt.yield(200);
     }
     return 0 ;
 }
