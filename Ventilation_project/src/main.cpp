@@ -244,13 +244,13 @@ int main(void) {
 		pres->setValue((int) SDP_read());
 
 		temp->setValue(temp_.read());
-		Sleep(500);
+		Sleep(10);
 		rh->setValue(rh_.read());
-		Sleep(500);
+		Sleep(50);
 		co2->setValue(co2_.read());
-		Sleep(500);
+		Sleep(50);
 
-    	current_pressure = pres->setValue();
+    	current_pressure = pres->getValue();
     	current_freq = freq->getValue();
 
 		if (IntegerEdit::saved_ == true || StringEdit::saved_ == true) {
@@ -290,7 +290,7 @@ int main(void) {
 
 		}
 		Sleep(1000);
-
+#if 0
 			if(mqtt_message_arrived){
 				mqtt_message_arrived = false;
 				printf((mqtt_message + "\r\n").c_str());
@@ -350,7 +350,7 @@ int main(void) {
 				}
 				menu.event(MenuItem::show);
 			}
-
+#endif
 		std::string sample = sample_json(nr, freq->getValue(), spt_updated, pres->getValue(), m_sta_mode[modes->getValue()], m_sta[mqtt_status], co2_.read(), rh_.read(), temp_.read());
 		mqtt_status = mqtt.publish(MQTT_TOPIC_SEND, sample, sample.length());
 		nr++;
