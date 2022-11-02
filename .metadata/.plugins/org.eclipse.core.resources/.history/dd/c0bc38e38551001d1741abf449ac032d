@@ -1,0 +1,44 @@
+/*
+ * MainHeader.h
+ *
+ *  Created on: 20 Oct 2022
+ *      Author: Manish
+ */
+
+#ifndef SRC_MAINHEADER_H_
+#define SRC_MAINHEADER_H_
+
+#include"board.h"
+#include "DigitalIoPin.h"
+#include <atomic>
+#include <stdio.h>
+#include <ctype.h>
+#include "LpcUart.h"
+#include "ritimer_15xx.h"
+#include "LiquidCrystal.h"
+#include "I2C.h"
+#include "./modbus/ModbusMaster.h"
+#include "./modbus/ModbusRegister.h"
+#include "SimpleMenu.h"
+#include "IntegerEdit.h"
+#include "ModeEdit.h"
+#include <cr_section_macros.h>
+#include <atomic>
+#include "retarget_uart.h"
+#include "../src/mqtt/esp8266_socket.h"
+#include "../src/paho-mqtt/MQTTClient-C/src/MQTTClient.h"
+#include <cstring>
+#include "MqttController.h"
+
+
+#define SDP_CMD_READ (0xF1)
+#define SDP_ADDRESS (0x40)
+
+#define SSID	    "SmartIotMQTT"
+#define PASSWORD    "SmartIot"
+#define BROKER_IP   "192.168.1.254"
+#define BROKER_PORT  1883
+#define MQTT_TIMEOUT 30000
+
+
+#endif /* SRC_MAINHEADER_H_ */

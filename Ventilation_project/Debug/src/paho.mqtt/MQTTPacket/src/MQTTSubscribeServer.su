@@ -1,0 +1,2 @@
+../src/paho.mqtt/MQTTPacket/src/MQTTSubscribeServer.c:34:5:MQTTDeserialize_subscribe	48	static
+../src/paho.mqtt/MQTTPacket/src/MQTTSubscribeServer.c:81:5:MQTTSerialize_suback	40	static

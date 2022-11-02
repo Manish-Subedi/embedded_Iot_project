@@ -1,0 +1,49 @@
+/*
+ * MqttController.cpp
+ *
+ *  Created on: 21 Oct 2022
+ *      Authur: Manish
+ */
+
+#include "MqttController.h"
+#include "MainHeader.h"
+
+MqttController::MqttController(void (*message_handler_)(MessageData* data)):
+	client(), network(), message_handler(message_handler_)
+{
+	connectData = MQTTPacket_connectData_initializer;
+}
+
+void MqttController::Mqtt_start(const char* ssid, const char* password, char* ip, int port):
+ssid(ssid), password(password), ip(ip), port(port)
+{
+	status = false;
+	//connect to network and initialize MQTT
+	NetworkInit(&network, ssid, password);
+	MQTTClientInit(&client, &network, MQTT_TIMEOUT, sendbuf, sizeof(sendbuf), readbuf, sizeof(readbuf));
+
+	if (NetworkConnect(&network, ip, port) == 0) printf("Network Connection established!");
+
+	connectData.MQTTVersion = 3;
+	connectData.clientID.cstring = (char *)"esp_test";
+
+	if (MQTTConnect(&client, &connectData) == 0) printf("MQTT connection established!");
+}
+
+MqttController::~MqttController() {
+	// TODO Auto-generated destructor stub
+}
+void MqttController::messageArrived(MessageData* data)
+{
+	printf("Message arrived on topic %.*s: %.*s\n", data->topicName->lenstring.len, data->topicName->lenstring.data,
+			data->message->payloadlen, (char *)data->message->payload);
+}
+
+
+void MqttController::subscribe(const char *topic)
+{
+
+	MQTTSubscribe(&client, topic, QOS2, messageArrived);
+};
+
+void MqttController::publish(){};

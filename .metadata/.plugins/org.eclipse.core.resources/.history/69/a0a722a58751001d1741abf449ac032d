@@ -1,0 +1,78 @@
+/*
+ * MqttController.cpp
+ *
+ *  Created on: 21 Oct 2022
+ *      Authur: Manish
+ */
+
+#include "MqttController.h"
+#include "MainHeader.h"
+
+
+MqttController::MqttController(void (*message_handler_)(MessageData* data)):
+	client(), network(), message_handler(message_handler_)
+{
+	connectData = MQTTPacket_connectData_initializer;
+}
+
+void MqttController::Mqtt_start(const char* ssid, const char* password, char* ip, int port)
+{
+	//connect to network and initialize MQTT
+	NetworkInit(&network, ssid, password);
+	MQTTClientInit(&client, &network, MQTT_TIMEOUT, sendbuf, sizeof(sendbuf), readbuf, sizeof(readbuf));
+
+	if ((rc = NetworkConnect(&network, ip, port)) != 0)
+		printf("Return code from network connect is %d\n", rc);
+
+	connectData.MQTTVersion = 3;
+	connectData.clientID.cstring = (char *)"esp_test";
+
+	if ((rc = MQTTConnect(&client, &connectData)) != 0)
+		printf("Return code from MQTT connect is %d\n", rc);
+	else
+		printf("MQTT Connected\n");
+}
+
+MqttController::~MqttController() {
+	// TODO Auto-generated destructor stub
+}
+void MqttController::messageArrived(MessageData* data, char* received_payload)
+{
+	sprintf(received_payload, "%.*s: %.*s\n", data->topicName->lenstring.len, data->topicName->lenstring.data,
+			data->message->payloadlen, (char *)data->message->payload);
+	printf(received_payload);
+
+}
+
+
+void MqttController::subscribe(const char *topic)
+{
+	rc = MQTTSubscribe(&client, topic, QOS2, message_handler);
+};
+
+void MqttController::publish()
+{
+	uint32_t sec = 0;
+	if(sleep.get_ticks() / 1000 != sec) {
+		MQTTMessage message;
+		char payload[30];
+
+		sec = get_ticks() / 1000;
+		++count;
+
+		message.qos = QOS1;
+		message.retained = 0;
+		message.payload = payload;
+		sprintf(payload, "message number %d", count);
+		message.payloadlen = strlen(payload);
+
+		if ((rc = MQTTPublish(&client, "test/sample/a", &message)) != 0)
+			printf("Return code from MQTT publish is %d\n", rc);
+	}
+};
+
+int MqttController::enquire_status()
+{
+	return rc;
+}
+}

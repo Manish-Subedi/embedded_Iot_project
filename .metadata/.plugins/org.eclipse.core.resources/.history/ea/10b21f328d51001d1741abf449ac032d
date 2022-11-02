@@ -1,0 +1,84 @@
+/*
+ * MqttController.cpp
+ *
+ *  Created on: 21 Oct 2022
+ *      Authur: Manish
+ */
+
+#include "MqttController.h"
+#include "MainHeader.h"
+
+
+MqttController::MqttController(void (*message_handler_)(MessageData* data)):
+	client(), network(), message_handler(message_handler_)
+{
+	connectData = MQTTPacket_connectData_initializer;
+}
+
+void MqttController::Mqtt_start(const char* ssid, const char* password, char* ip, int port)
+{
+	//connect to network and initialize MQTT
+	NetworkInit(&network, ssid, password);
+	MQTTClientInit(&client, &network, MQTT_TIMEOUT, sendbuf, sizeof(sendbuf), readbuf, sizeof(readbuf));
+
+	if ((rc = NetworkConnect(&network, ip, port)) != 0)
+		printf("Return code from network connect is %d\n", rc);
+
+	connectData.MQTTVersion = 3;
+	connectData.clientID.cstring = (char *)"esp_test";
+
+	if ((rc = MQTTConnect(&client, &connectData)) != 0)
+		printf("Return code from MQTT connect is %d\n", rc);
+	else
+		printf("MQTT Connected\n");
+}
+
+MqttController::~MqttController() {}
+
+void MqttController::messageArrived(MessageData* data, char* received_payload)
+{
+	sprintf(received_payload, "%.*s: %.*s\n", data->topicName->lenstring.len, data->topicName->lenstring.data,
+			data->message->payloadlen, (char *)data->message->payload);
+	printf(received_payload);
+}
+
+void MqttController::subscribe(const char *topic)
+{
+	rc = MQTTSubscribe(&client, topic, QOS2, message_handler);
+}
+
+void MqttController::publish(const char *topic, char *payload)
+{
+		MQTTMessage message;
+
+		message.qos = QOS1;
+		message.retained = 0;
+		message.payload = payload;
+		message.payloadlen = strlen(payload);
+
+		if ((rc = MQTTPublish(&client, topic, &message)) != 0)
+			printf("Return code from MQTT publish is %d\n", rc);
+}
+
+
+void MqttController::disconnect(MQTTClient* client)
+{
+	MQTTDisconnect(&client);
+}
+
+/*
+ * The yield is used to provide execution context to the library.
+ * While yield is executed the library processes incoming messages (subscriptions)
+ * and sends keep alive when required.
+ */
+void MqttController::yield(int timeout_ms)
+{
+	MQTTYield(&client, timeout_ms);
+}
+
+int MqttController::enquire_status()
+{
+	if(rc == 0) printf("All good, Relax!");
+	return rc;
+}
+

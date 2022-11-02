@@ -1,0 +1,26 @@
+/*
+ * SleepMilli.h
+ *
+ *  Created on: 14 Oct 2022
+ *      Author: Manish
+ */
+
+#ifndef SLEEPMILLI_H_
+#define SLEEPMILLI_H_
+#include <atomic>
+
+class SleepMilli {
+public:
+	SleepMilli();
+	void Sleep(int ms);
+	virtual ~SleepMilli();
+	void SysTick_Handler(void);
+	uint32_t get_ticks(void);
+	static volatile std::atomic_int counter;
+	static volatile uint32_t systicks;
+private:
+	int ms;
+};
+
+#endif /* SLEEPMILLI_H_ */
+

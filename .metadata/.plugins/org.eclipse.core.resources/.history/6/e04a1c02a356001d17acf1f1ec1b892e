@@ -1,0 +1,436 @@
+/*
+===============================================================================
+ Name        : main.c
+ Author      : Manish Subedi
+ Version     :
+ Copyright   : $(copyright)
+ Description : main definition
+===============================================================================
+*/
+
+
+#include "MainHeader.h"
+
+// TODO: insert other include files here
+
+// TODO: insert other definitions and declarations here
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+/**
+ * @brief	Handle interrupt from SysTick timer
+ * @return	Nothing
+ */
+	void SysTick_Handler(void)
+	{
+		systicks++;
+		if(counter > 0) counter--;
+	}
+
+	uint32_t get_ticks(void)
+	{
+		return systicks;
+	}
+
+	/* Pin interrupt handler*/
+	void PIN_INT0_IRQHandler(void){
+		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(0));
+
+		// make sure up is only executed once on button debounce
+		if (millis() - button_pressed_time < MAX_DEBOUNCE) return;
+		button_pressed_time = millis();
+
+		menu.event(MenuItem::up);
+	}
+	void PIN_INT1_IRQHandler(void){
+		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(1));
+
+		// make sure up is only executed once on button debounce
+		if (millis() - button_pressed_time < MAX_DEBOUNCE) return;
+		button_pressed_time = millis();
+
+		if(menu.getPos() == 0) menu.event(MenuItem::ok);
+		//check if mode is auto
+		if(modes->getValue() == 0){
+			//allow setting pressure
+			if(menu.getPos() == 3) menu.event(MenuItem::ok);
+		}
+		if(modes->getValue() == 1){ //check if mode is manual
+			if(menu.getPos() == 4) menu.event(MenuItem::ok); //allow only set-frequency
+		}
+	}
+	void PIN_INT2_IRQHandler(void){
+		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(2));
+
+		// make sure up is only executed once on button debounce
+		if (millis() - button_pressed_time < MAX_DEBOUNCE) return;
+		button_pressed_time = millis();
+
+		menu.event(MenuItem::down);
+	}
+	/*
+	void PIN_INT3_IRQHandler(void){
+		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(3));
+
+		// make sure up is only executed once on button debounce
+		if (millis() - button_pressed_time < MAX_DEBOUNCE) return;
+		button_pressed_time = millis();
+
+		menu.event(MenuItem::back);
+	}*/
+
+
+#ifdef __cplusplus
+}
+#endif
+
+void Sleep(int ms)
+{
+	counter = ms;
+	while(counter > 0) {
+		__WFI();
+	}
+}
+
+/* this function is required by the modbus library */
+uint32_t millis() {
+	return systicks;
+}
+
+/* function declarations */
+uint16_t SDP_read();
+void message_handler(MessageData*);
+std::string sample_json(int sample_number, int speed, int setpoint,int pressure, const char* mode, const char* error, int co2, int rh, int temp);
+
+int main(void) {
+
+#if defined (__USE_LPCOPEN)
+    // Read clock settings and update SystemCoreClock variable
+    SystemCoreClockUpdate();
+#if !defined(NO_BOARD_LIB)
+    // Set up and initialize all required blocks and
+    // functions related to the board hardware
+    Board_Init();
+    // Set the LED to the state of "On"
+    Board_LED_Set(0, true);
+#endif
+#endif
+
+    // this call initializes debug uart for stdout redirection
+	retarget_init();
+	/* Set up SWO to PIO1_2 */
+	Chip_SWM_MovablePortPinAssign(SWM_SWO_O, 1, 2); // Needed for SWO printf
+
+	Chip_RIT_Init(LPC_RITIMER);
+    /* Enable and setup SysTick Timer at a periodic rate */
+    SysTick_Config(SystemCoreClock / TICKRATE_HZ);
+
+    /* configure MQTT and subscribe */
+    MQTT mqtt(message_handler);
+    mqtt.connect(SSID, PASSWORD, BROKER_IP, BROKER_PORT);
+    mqtt.subscribe(MQTT_TOPIC_SETTING);
+
+
+    /* configure LCD pinouts */
+    DigitalIoPin *rs = new DigitalIoPin(0, 29, DigitalIoPin::output);
+	DigitalIoPin *en = new DigitalIoPin(0, 9, DigitalIoPin::output);
+	DigitalIoPin *d4 = new DigitalIoPin(0, 10, DigitalIoPin::output);
+	DigitalIoPin *d5 = new DigitalIoPin(0, 16, DigitalIoPin::output);
+	DigitalIoPin *d6 = new DigitalIoPin(1, 3, DigitalIoPin::output);
+	DigitalIoPin *d7 = new DigitalIoPin(0, 0, DigitalIoPin::output);
+	LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+	/* Configure buttons */
+	DigitalIoPin sw1(1, 8, DigitalIoPin::pullup, true);
+	DigitalIoPin sw2(0, 5, DigitalIoPin::pullup, true);
+	DigitalIoPin sw3(0, 6, DigitalIoPin::pullup, true);
+	DigitalIoPin sw4(0, 7, DigitalIoPin::pullup, true);
+
+	// configure display geometry
+	lcd.begin(16, 2);
+	lcd.setCursor(0, 0);
+	lcd.print("LCD Ready!");
+
+	/* GPIO interrupt and button init */
+	DigitalIoPin::GPIO_Interrupt_init();
+	sw1.enable_interrupt(0);
+	sw2.enable_interrupt(1);
+	sw3.enable_interrupt(2);
+
+#if 0
+	LpcPinMap none = {-1, -1}; // unused pin has negative values in it
+	LpcPinMap txpin = { 0, 18 }; // transmit pin that goes to debugger's UART->USB converter
+	LpcPinMap rxpin = { 0, 13 }; // receive pin that goes to debugger's UART->USB converter
+	LpcUartConfig cfg_d = { LPC_USART0, 115200, UART_CFG_DATALEN_8 | UART_CFG_PARITY_NONE | UART_CFG_STOPLEN_1, false, txpin, rxpin, none, none };
+
+	LpcUart dbgu(cfg_d);
+#endif
+	//dbgu.write("\n\rHello World!\r\n"); //testing debug port
+
+	std::string options[2] = { "Auto", "Manual" };
+
+	modes = new StringEdit(&lcd, std::string("Mode"), options, 2);
+	IntegerEdit *freq = new IntegerEdit(&lcd, std::string("Frequency"), 0, 100, 2);
+	IntegerEdit *pres = new IntegerEdit(&lcd, std::string("Pressure"), 0, 120, 2);
+	IntegerEdit *t_pres = new IntegerEdit(&lcd, std::string("Target Pressure"), 0, 120, 1 );
+	IntegerEdit *t_freq = new IntegerEdit(&lcd, std::string("Target Freq"), 0, 100, 2);
+	IntegerEdit *temp = new IntegerEdit(&lcd, std::string("Temperature"), -50, 100, 1);
+	IntegerEdit *rh = new IntegerEdit(&lcd, std::string("RH"), 0, 100, 1);
+	IntegerEdit *co2 = new IntegerEdit(&lcd, std::string("CO2"), 0, 1000, 10);
+
+	menu.addItem(new MenuItem(modes));
+	menu.addItem(new MenuItem(freq));
+	menu.addItem(new MenuItem(pres));
+	menu.addItem(new MenuItem(t_pres));
+	menu.addItem(new MenuItem(t_freq));
+	menu.addItem(new MenuItem(temp));
+	menu.addItem(new MenuItem(rh));
+	menu.addItem(new MenuItem(co2));
+
+	menu.event(MenuItem::show);
+
+	/* Modbus node for fan */
+	ModbusMaster node_fan(1); // Create modbus object that connects to slave id 1
+	node_fan.begin(9600); // set transmission rate - other parameters are set inside the object and can't be changed here
+	ModbusRegister freq_fan(&node_fan, 0);
+	ModbusRegister pulse_fan(&node_fan, 4, false);
+	Sleep(200);
+
+	/* Modbus node for GMP252 co2 sensor */
+	ModbusMaster node_gmp(240);
+	node_gmp.begin(9600);
+	ModbusRegister co2_(&node_gmp, 0x0101, true);
+	Sleep(200);
+
+	/* Modbus node for HMP60 temperature & humidity sensor */
+	ModbusMaster node_hmp(241);
+	node_hmp.begin(9600);
+	ModbusRegister rh_(&node_hmp, 0x0100, true);
+	ModbusRegister temp_(&node_hmp, 0x0101, true);
+	Sleep(200);
+
+	/* LCD UI readings and control system config */
+	modes->setValue(0);
+	freq->setValue(0);
+	freq_fan.write(0); //instantly set fan speed
+	pres->setValue((int) SDP_read());
+	t_pres->setValue(0);
+	temp->setValue(temp_.read());
+	rh->setValue(rh_.read());
+	co2->setValue(co2_.read()*10);
+
+	char buffer[150];
+	int mqtt_status = 0;
+
+	/* variables in publish */
+	int nr = 0;
+	int current_pressure = 0;
+	int current_freq = 0;
+	int spt_updated = 0;
+	char *m_sta[2] = { "false", "true" };
+	char *m_sta_mode[2] = { "true", "false" };
+
+	/* jsmn-JSON config */
+	jsmn_parser p;
+	jsmntok_t tokens[256];
+	jsmn_init(&p);
+
+	/* main loop */
+    while(1) {
+		pres->setValue((int) SDP_read());
+
+		temp->setValue(temp_.read());
+		Sleep(500);
+		rh->setValue(rh_.read());
+		Sleep(500);
+		co2->setValue(co2_.read());
+		Sleep(500);
+
+    	current_pressure = (int) SDP_read();
+    	current_freq = freq->getValue();
+
+		if (IntegerEdit::saved_ == true || StringEdit::saved_ == true) {
+			//if set pressure
+			if(menu.getPos() == 4){
+				//checking if current speed is same as target
+				if(current_freq != t_freq->getValue()){
+
+					freq_fan.write(t_freq->getValue()*10);
+					Sleep(200);
+					freq->setValue(t_freq->getValue());
+					pres->setValue((int) SDP_read());
+				}
+			}
+			else if(menu.getPos() == 3)  {
+				if(t_pres->getValue() < current_pressure){
+						while(((int) SDP_read()) > t_pres->getValue()){
+							current_freq-=5;
+							freq_fan.write(current_freq*10);
+							Sleep(600);
+						}
+						freq->setValue(current_freq*10);
+					}
+				else if(t_pres->getValue() > current_pressure){
+						while(((int) SDP_read()) < t_pres->getValue()){
+							current_freq+=5;
+							freq_fan.write(current_freq*10);
+							Sleep(600);
+						}
+						freq->setValue(current_freq*10);
+					}
+			}
+			Sleep(1000);
+			menu.event(MenuItem::show);
+			IntegerEdit::saved_ = false;
+			StringEdit::saved_ = false;
+
+		}
+
+		Sleep(1000);
+
+			if(mqtt_message_arrived){
+				mqtt_message_arrived = false;
+				printf((mqtt_message + "\r\n").c_str());
+				const char *mqtt_message_ = mqtt_message.c_str();
+				jsmn_parse(&p, mqtt_message_, 50, tokens, 10);
+
+				//check for the mode from Web UI
+				jsmntok_t key = tokens[2];
+				unsigned int length = key.end - key.start;
+				Sleep(20);
+				char set_mode[length + 1];
+				memcpy(set_mode, &mqtt_message_[key.start], length);
+				set_mode[length] = '\0';
+				printf("Key: %s\n", set_mode);
+
+
+				//read the set value
+				jsmntok_t key_ = tokens[4];
+				unsigned int length_ = key_.end - key_.start;
+				Sleep(20);
+				char set_point[length_ + 1];
+				memcpy(set_point, &mqtt_message_[key_.start], length_);
+				set_point[length_] = '\0';
+				printf("Key: %s\n", set_point);
+				spt_updated = std::stoi(set_point);
+
+				if (strncmp("false", set_mode, 5) == 0) {
+					freq_fan.write(spt_updated*10);
+					Sleep(500);
+					freq->setValue(spt_updated);
+					t_freq->setValue(spt_updated);
+					modes->setValue(1);
+				}
+				else if (strncmp("true", set_mode, 4) == 0) {
+					t_pres->setValue(spt_updated);
+
+						if(t_pres->getValue() < current_pressure){
+							while(((int) SDP_read()) > t_pres->getValue()){
+								current_freq-=5;
+								freq_fan.write(current_freq*10);
+								Sleep(600);
+							}
+							freq->setValue(current_freq*10);
+
+						}
+
+						else if(t_pres->getValue() > current_pressure){
+							while(((int) SDP_read()) < t_pres->getValue()){
+								current_freq+=5;
+								freq_fan.write(current_freq*10);
+								Sleep(600);
+							}
+							freq->setValue(current_freq*10);
+
+						}
+						modes->setValue(0);
+				}
+				menu.event(MenuItem::show);
+			}
+
+		std::string sample = sample_json(nr, freq->getValue(), spt_updated, pres->getValue(), m_sta_mode[modes->getValue()], m_sta[mqtt_status], co2_.read(), rh_.read(), temp_.read());
+		mqtt_status = mqtt.publish(MQTT_TOPIC_SEND, sample, sample.length());
+		nr++;
+		menu.event(MenuItem::show);
+		mqtt.yield(2000);
+    }
+    return 0 ;
+}
+
+/* function implementations */
+
+/* read data from Sensirion SDP610 – 120Pa pressure sensor */
+uint16_t SDP_read(){
+
+	/* I2C objects and config */
+	I2C_config cfg_i2c ;
+	I2C i2c(cfg_i2c);
+
+	uint8_t tx[1];
+	uint8_t rx[3];
+	int16_t pressure;
+
+	tx[0]=SDP_CMD_READ;
+
+	i2c.transaction(SDP_ADDRESS,tx,1,rx,3);
+
+	// Combine read bytes
+	uint16_t raw = (rx[0] << 8) | rx[1];
+
+	// uint containing two's complement -> int16
+	if (raw & 0x8000) {
+		raw = -~(raw - 1);
+	}
+	pressure = raw;
+
+	// Scaling
+	pressure /= 240;
+
+	// altitude correction
+	pressure *= 0.95;
+
+	return pressure;
+}
+void delay_systick(const int ticks){
+	int delay = ticks;
+	while(delay > 0){
+		__WFI();
+	}
+}
+
+void message_handler(MessageData* data)
+{
+	mqtt_message_arrived = true;
+	mqtt_message = "";
+
+	// Parse message from payload
+	char payload_parsed[READ_BUF_LENGTH];
+	snprintf(
+			payload_parsed,
+			data->message->payloadlen + 1,
+			"%.*s",
+			data->message->payloadlen,
+			(char *)data->message->payload
+	);
+	mqtt_message = payload_parsed;
+}
+
+std::string sample_json(int sample_number, int speed, int setpoint,int pressure, const char* mode, const char* error, int co2, int rh, int temp)
+{
+
+	nlohmann::json sample;
+	sample["nr"] = sample_number;
+	sample["speed"] = speed;
+	sample["setpoint"] = setpoint;
+	sample["pressure"] = pressure;
+	sample["auto"] = mode;
+	sample["error"] = error;
+	sample["co2"] = co2;
+	sample["rh"] = rh;
+	sample["temp"] = temp;
+
+
+	return sample.dump();
+}

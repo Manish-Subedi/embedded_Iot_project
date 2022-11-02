@@ -1,0 +1,207 @@
+/*
+===============================================================================
+ Name        : main.c
+ Author      : MSubedi
+ Version     :
+ Copyright   : $(copyright)
+ Description : main definition
+===============================================================================
+*/
+#if 1
+#if defined (__USE_LPCOPEN)
+#if defined(NO_BOARD_LIB)
+#include "chip.h"
+#else
+#include "board.h"
+#endif
+#endif
+#include <cstdio>
+#include <cstring>
+#include "systick.h"
+#include <cr_section_macros.h>
+#include <atomic>
+#include "stdio.h"
+#include "LpcUart.h"
+#include "DigitalIoPin.h"
+#include "LiquidCrystal.h"
+#include "I2C.h"
+#include "./modbus/ModbusMaster.h"
+#include "./modbus/ModbusRegister.h"
+
+#define ADDRESS (0x40)
+#define CMD_READ (0xF1)
+
+static volatile int counter;
+static volatile uint32_t systicks;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+/**
+ * @brief	Handle interrupt from SysTick timer
+ * @return	Nothing
+ */
+void SysTick_Handler(void)
+{
+	systicks++;
+	if(counter > 0) counter--;
+}
+
+uint32_t get_ticks(void)
+{
+	return systicks;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+void Sleep(int ms)
+{
+	counter = ms;
+	while(counter > 0) {
+		__WFI();
+	}
+}
+
+/* this function is required by the modbus library */
+uint32_t millis() {
+	return systicks;
+}
+
+
+int main(void) {
+
+#if defined (__USE_LPCOPEN)
+    // Read clock settings and update SystemCoreClock variable    SystemCoreClockUpdate();
+#if !defined(NO_BOARD_LIB)
+    // Set up and initialize all required blocks and
+    // functions related to the board hardware
+    Board_Init();
+    // Set the LED to the state of "On"
+    Board_LED_Set(2, true);
+#endif
+#endif
+
+
+    // TODO: insert code here
+    LpcPinMap none = {-1, -1}; // unused pin has negative values in it
+	LpcPinMap txpin = { 0, 18 }; // transmit pin that goes to debugger's UART->USB converter
+	LpcPinMap rxpin = { 0, 13 }; // receive pin that goes to debugger's UART->USB converter
+	LpcUartConfig cfg_uart = { LPC_USART0, 115200, UART_CFG_DATALEN_8 | UART_CFG_PARITY_NONE | UART_CFG_STOPLEN_1, false, txpin, rxpin, none, none };
+
+	LpcUart dbgu(cfg_uart);
+
+	// Force the counter to be placed into memory
+	volatile static int z = 0 ;
+
+	I2C_config cfg_i2c;
+	I2C i2c(cfg_i2c);
+
+	uint8_t tx[1];
+	uint8_t rx[3];
+
+	dbgu.write("ready\r\n");
+
+	/* IO pins for lcd */
+	DigitalIoPin rs(0, 29, DigitalIoPin::output);
+	DigitalIoPin en(0, 9, DigitalIoPin::output);
+	DigitalIoPin d4(0, 10, DigitalIoPin::output);
+	DigitalIoPin d5(0, 16, DigitalIoPin::output);
+	DigitalIoPin d6(1, 3, DigitalIoPin::output);
+	DigitalIoPin d7(0, 0, DigitalIoPin::output);
+
+	/* buttons configuration */
+	DigitalIoPin SW1(1, 8, DigitalIoPin::pullup, true);
+	DigitalIoPin SW2(0, 5, DigitalIoPin::pullup, true);
+	DigitalIoPin SW3(0, 6, DigitalIoPin::pullup, true);
+	DigitalIoPin SW4(0, 7, DigitalIoPin::pullup, true);
+
+	LiquidCrystal lcd(&rs, &en, &d4, &d5, &d6, &d7);
+
+	lcd.begin(16, 2);
+	lcd.setCursor(0, 0);
+	lcd.print("ready");
+
+	/* modbus config */
+
+	ModbusMaster node(0, 1); //modbus object for produal MIO that controlls the fan
+	node.begin(9600); //Sets up the serial port using specified baud rate
+
+	ModbusRegister AO1(&node, 0);
+	ModbusRegister DI1(&node, 4, false);
+	int fa =  0;
+
+	while(1){
+		char str[30];
+
+
+
+
+			AO1.write(fa*100);
+			// just print the value without checking if we got a -1
+			snprintf(str, 30, "AO1=%4d\n", (int) fa*100);
+			if(SW1.read()) {
+				while(SW1.read());
+				if(!SW1.read()){
+					Sleep(5000);
+				}
+
+			}
+
+			tx[0] = CMD_READ; //command to let it know we want to read
+
+				if(i2c.transaction(ADDRESS, tx, 1, rx, 3)){
+					uint16_t pressure;
+
+					//combine read bytes
+					uint16_t raw = (rx[0] << 8 | rx[1]);
+					if(raw & 0x8000){
+						raw = -~(raw - 1);
+					}
+					pressure = raw;
+					//scaling
+					pressure /= 240;
+					//altitude correction
+					pressure *= 0.95;
+
+
+					if(z % 100 == 0){
+						snprintf(str, 30, "Pressure: %d\r\n", pressure);
+						dbgu.write(str);
+						//lcd.setCursor(0, 0);
+						//lcd.print(str);
+					}
+				}
+				else{
+					lcd.setCursor(0, 0);
+					dbgu.write("error");
+					lcd.print("error");
+				}
+			//}
+		//}
+
+		//Sleep(100);
+
+		/* modbus config */
+
+
+
+		//read from digital pulse counter input
+		/*
+		snprintf(str, 20, "frequency = %4d\r\n", DI1.read());
+		dbgu.write(str);
+		Sleep(2000);
+	*/
+
+
+	    // Enter an infinite loop, just incrementing a counter
+		z++;
+        // "Dummy" NOP to allow source level single
+        // stepping of tight while() loop
+        //__asm volatile ("nop");
+    }
+    return 0 ;
+}
+#endif //ex 1 ends
+

@@ -1,0 +1,49 @@
+/*
+ * SleepMilli.cpp
+ *
+ *  Created on: 14 Oct 2022
+ *      Author: Manish
+ */
+
+#include "SleepMilli.h"
+#include <atomic>
+#include "chip.h"
+
+SleepMilli::SleepMilli() {
+	// TODO Auto-generated constructor stub
+
+}
+
+void SleepMilli::Sleep(int ms)
+{
+	counter = ms;
+	while(counter > 0) {
+		__WFI();
+	}
+}
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void SleepMilli::SysTick_Handler(void)
+{
+	systicks++;
+	if(counter > 0) counter--;
+}
+uint32_t get_ticks(void)
+{
+	return systicks;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+uint32_t SleepMilli::millis(){
+	return systicks;
+}
+
+SleepMilli::~SleepMilli() {
+	// TODO Auto-generated destructor stub
+}

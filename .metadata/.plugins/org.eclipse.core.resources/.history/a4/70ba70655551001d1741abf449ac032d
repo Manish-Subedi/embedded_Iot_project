@@ -1,0 +1,17 @@
+/*
+ * MqttController.h
+ *
+ *  Created on: 21 Oct 2022
+ *      Author: Manish
+ */
+
+#ifndef SRC_MQTTCONTROLLER_H_
+#define SRC_MQTTCONTROLLER_H_
+
+class MqttController {
+public:
+	MqttController(const char* ssid, const char* pass, char* ip, int port);
+	virtual ~MqttController();
+};
+
+#endif /* SRC_MQTTCONTROLLER_H_ */

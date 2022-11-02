@@ -1,0 +1,151 @@
+12:59:08 **** Incremental Build of configuration Debug for project Vantilation_project ****
+make -r -j4 all 
+Building file: ../src/main.cpp
+Invoking: MCU C++ Compiler
+arm-none-eabi-c++ -std=c++11 -DDEBUG -D__CODE_RED -D__NEWLIB__ -DCORE_M3 -D__USE_LPCOPEN -DCPP_USE_HEAP -D__LPC15XX__ -I"C:\Users\Manish\Documents\MCUXpressoIDE_11.5.0_7232\workspace\lpc_board_nxp_lpcxpresso_1549\inc" -I"C:\Users\Manish\Documents\MCUXpressoIDE_11.5.0_7232\workspace\lpc_chip_15xx\inc" -O0 -fno-common -g3 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fno-rtti -fno-exceptions -fmerge-constants -fmacro-prefix-map="../src/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/main.d" -MT"src/main.o" -MT"src/main.d" -o "src/main.o" "../src/main.cpp"
+In file included from ../src/main.cpp:12:
+../src/MainHeader.h:58: warning: "CLIENT_ID" redefined
+   58 | #define CLIENT_ID       (char *)"group5"
+      | 
+In file included from ../src/MainHeader.h:34,
+                 from ../src/main.cpp:12:
+../src/MQTT.h:18: note: this is the location of the previous definition
+   18 | #define CLIENT_ID       "lpcgrp07"
+      | 
+../src/main.cpp: In function 'int main()':
+../src/main.cpp:234:21: warning: ISO C++ forbids converting a string constant to 'char*' [-Wwrite-strings]
+  234 |  char *m_sta[2] = { "false", "true" };
+      |                     ^~~~~~~
+../src/main.cpp:234:30: warning: ISO C++ forbids converting a string constant to 'char*' [-Wwrite-strings]
+  234 |  char *m_sta[2] = { "false", "true" };
+      |                              ^~~~~~
+../src/main.cpp:235:26: warning: ISO C++ forbids converting a string constant to 'char*' [-Wwrite-strings]
+  235 |  char *m_sta_mode[2] = { "true", "false" };
+      |                          ^~~~~~
+../src/main.cpp:235:34: warning: ISO C++ forbids converting a string constant to 'char*' [-Wwrite-strings]
+  235 |  char *m_sta_mode[2] = { "true", "false" };
+      |                                  ^~~~~~~
+../src/main.cpp:226:7: warning: unused variable 'buffer' [-Wunused-variable]
+  226 |  char buffer[150];
+      |       ^~~~~~
+In file included from c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\map:61,
+                 from ../src/json.hpp:64,
+                 from ../src/MainHeader.h:36,
+                 from ../src/main.cpp:12:
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_map.h: In member function 'std::map<_Key, _Tp, _Compare, _Alloc>::mapped_type& std::map<_Key, _Tp, _Compare, _Alloc>::operator[](std::map<_Key, _Tp, _Compare, _Alloc>::key_type&&) [with _Key = std::__cxx11::basic_string<char>; _Tp = nlohmann::basic_json<>; _Compare = std::less<std::__cxx11::basic_string<char> >; _Alloc = std::allocator<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > >]':
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_map.h:520:37: note: parameter passing for argument of type 'std::_Rb_tree<std::__cxx11::basic_string<char>, std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> >, std::_Select1st<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > >, std::less<std::__cxx11::basic_string<char> >, std::allocator<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > > >::const_iterator' changed in GCC 7.1
+  520 |    __i = _M_t._M_emplace_hint_unique(__i, std::piecewise_construct,
+      |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  521 |      std::forward_as_tuple(std::move(__k)),
+      |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  522 |      std::tuple<>());
+      |      ~~~~~~~~~~~~~~~                 
+In file included from c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\vector:72,
+                 from ../src/SimpleMenu.h:10,
+                 from ../src/MainHeader.h:27,
+                 from ../src/main.cpp:12:
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\vector.tcc: In member function 'void std::vector<_Tp, _Alloc>::reserve(std::vector<_Tp, _Alloc>::size_type) [with _Tp = nlohmann::basic_json<>; _Alloc = std::allocator<nlohmann::basic_json<> >]':
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\vector.tcc:85:36: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+   85 |        __tmp = _M_allocate_and_copy(__n,
+      |                ~~~~~~~~~~~~~~~~~~~~^~~~~
+   86 |   _GLIBCXX_MAKE_MOVE_IF_NOEXCEPT_ITERATOR(this->_M_impl._M_start),
+      |   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   87 |   _GLIBCXX_MAKE_MOVE_IF_NOEXCEPT_ITERATOR(this->_M_impl._M_finish));
+      |   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\map:60,
+                 from ../src/json.hpp:64,
+                 from ../src/MainHeader.h:36,
+                 from ../src/main.cpp:12:
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_tree.h: In member function 'std::_Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::iterator std::_Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::_M_emplace_hint_unique(std::_Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::const_iterator, _Args&& ...) [with _Args = {const std::piecewise_construct_t&, std::tuple<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&>, std::tuple<>}; _Key = std::__cxx11::basic_string<char>; _Val = std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> >; _KeyOfValue = std::_Select1st<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > >; _Compare = std::less<std::__cxx11::basic_string<char> >; _Alloc = std::allocator<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > >]':
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_tree.h:2460:7: note: parameter passing for argument of type 'std::_Rb_tree<std::__cxx11::basic_string<char>, std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> >, std::_Select1st<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > >, std::less<std::__cxx11::basic_string<char> >, std::allocator<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > > >::const_iterator' changed in GCC 7.1
+ 2460 |       _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+      |       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_algobase.h:66,
+                 from c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\char_traits.h:39,
+                 from c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\string:40,
+                 from ../src/MainHeader.h:19,
+                 from ../src/main.cpp:12:
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_iterator_base_funcs.h: In function '_InputIterator std::next(_InputIterator, typename std::iterator_traits<_Iter>::difference_type) [with _InputIterator = std::_Rb_tree_const_iterator<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > >]':
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_iterator_base_funcs.h:213:5: note: parameter passing for argument of type 'std::_Rb_tree_const_iterator<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > >' changed in GCC 7.1
+  213 |     next(_InputIterator __x, typename
+      |     ^~~~
+In file included from c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\vector:67,
+                 from ../src/SimpleMenu.h:10,
+                 from ../src/MainHeader.h:27,
+                 from ../src/main.cpp:12:
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_vector.h: In member function 'std::vector<_Tp, _Alloc>::pointer std::vector<_Tp, _Alloc>::_M_allocate_and_copy(std::vector<_Tp, _Alloc>::size_type, _ForwardIterator, _ForwardIterator) [with _ForwardIterator = std::move_iterator<nlohmann::basic_json<>*>; _Tp = nlohmann::basic_json<>; _Alloc = std::allocator<nlohmann::basic_json<> >]':
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_vector.h:1508:2: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+ 1508 |  _M_allocate_and_copy(size_type __n,
+      |  ^~~~~~~~~~~~~~~~~~~~
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_vector.h:1508:2: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_vector.h:1514:35: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+ 1514 |        std::__uninitialized_copy_a(__first, __last, __result,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 1515 |        _M_get_Tp_allocator());
+      |        ~~~~~~~~~~~~~~~~~~~~~~      
+In file included from c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\map:60,
+                 from ../src/json.hpp:64,
+                 from ../src/MainHeader.h:36,
+                 from ../src/main.cpp:12:
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_tree.h: In member function 'std::pair<std::_Rb_tree_node_base*, std::_Rb_tree_node_base*> std::_Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::_M_get_insert_hint_unique_pos(std::_Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::const_iterator, const key_type&) [with _Key = std::__cxx11::basic_string<char>; _Val = std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> >; _KeyOfValue = std::_Select1st<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > >; _Compare = std::less<std::__cxx11::basic_string<char> >; _Alloc = std::allocator<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > >]':
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_tree.h:2195:5: note: parameter passing for argument of type 'std::_Rb_tree<std::__cxx11::basic_string<char>, std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> >, std::_Select1st<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > >, std::less<std::__cxx11::basic_string<char> >, std::allocator<std::pair<const std::__cxx11::basic_string<char>, nlohmann::basic_json<> > > >::const_iterator' changed in GCC 7.1
+ 2195 |     _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\vector:66,
+                 from ../src/SimpleMenu.h:10,
+                 from ../src/MainHeader.h:27,
+                 from ../src/main.cpp:12:
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h: In function '_ForwardIterator std::__uninitialized_copy_a(_InputIterator, _InputIterator, _ForwardIterator, std::allocator<_Tp>&) [with _InputIterator = std::move_iterator<nlohmann::basic_json<>*>; _ForwardIterator = nlohmann::basic_json<>*; _Tp = nlohmann::basic_json<>]':
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h:323:5: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+  323 |     __uninitialized_copy_a(_InputIterator __first, _InputIterator __last,
+      |     ^~~~~~~~~~~~~~~~~~~~~~
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h:323:5: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h:325:37: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+  325 |     { return std::uninitialized_copy(__first, __last, __result); }
+      |              ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h: In function '_ForwardIterator std::uninitialized_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = std::move_iterator<nlohmann::basic_json<>*>; _ForwardIterator = nlohmann::basic_json<>*]':
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h:125:5: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+  125 |     uninitialized_copy(_InputIterator __first, _InputIterator __last,
+      |     ^~~~~~~~~~~~~~~~~~
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h:125:5: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h:150:15: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+  147 |       return std::__uninitialized_copy<__is_trivial(_ValueType1)
+      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  148 |            && __is_trivial(_ValueType2)
+      |            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  149 |            && __assignable>::
+      |            ~~~~~~~~~~~~~~~~~~
+  150 |  __uninit_copy(__first, __last, __result);
+      |  ~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h: In function '_ForwardIterator std::__uninitialized_move_if_noexcept_a(_InputIterator, _InputIterator, _ForwardIterator, _Allocator&) [with _InputIterator = nlohmann::basic_json<>*; _ForwardIterator = nlohmann::basic_json<>*; _Allocator = std::allocator<nlohmann::basic_json<> >]':
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h:347:2: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+  346 |       return std::__uninitialized_copy_a
+      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  347 |  (_GLIBCXX_MAKE_MOVE_IF_NOEXCEPT_ITERATOR(__first),
+      |  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  348 |   _GLIBCXX_MAKE_MOVE_IF_NOEXCEPT_ITERATOR(__last), __result, __alloc);
+      |   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h: In static member function 'static _ForwardIterator std::__uninitialized_copy<_TrivialValueTypes>::__uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = std::move_iterator<nlohmann::basic_json<>*>; _ForwardIterator = nlohmann::basic_json<>*; bool _TrivialValueTypes = false]':
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h:84:9: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+   84 |         __uninit_copy(_InputIterator __first, _InputIterator __last,
+      |         ^~~~~~~~~~~~~
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\bits\stl_uninitialized.h:84:9: note: parameter passing for argument of type 'std::move_iterator<nlohmann::basic_json<>*>' changed in GCC 7.1
+Finished building: ../src/main.cpp
+ 
+Building target: Vantilation_project.axf
+Invoking: MCU C++ Linker
+arm-none-eabi-c++ -nostdlib -L"C:\Users\Manish\Documents\MCUXpressoIDE_11.5.0_7232\workspace\lpc_board_nxp_lpcxpresso_1549\Debug" -L"C:\Users\Manish\Documents\MCUXpressoIDE_11.5.0_7232\workspace\lpc_chip_15xx\Debug" -Xlinker -Map="Vantilation_project.map" -Xlinker --cref -Xlinker --gc-sections -Xlinker -print-memory-usage -mcpu=cortex-m3 -mthumb -T "Vantilation_project_Debug.ld" -o "Vantilation_project.axf"  ./src/paho.mqtt/MQTTPacket/src/MQTTConnectClient.o ./src/paho.mqtt/MQTTPacket/src/MQTTConnectServer.o ./src/paho.mqtt/MQTTPacket/src/MQTTDeserializePublish.o ./src/paho.mqtt/MQTTPacket/src/MQTTFormat.o ./src/paho.mqtt/MQTTPacket/src/MQTTPacket.o ./src/paho.mqtt/MQTTPacket/src/MQTTSerializePublish.o ./src/paho.mqtt/MQTTPacket/src/MQTTSubscribeClient.o ./src/paho.mqtt/MQTTPacket/src/MQTTSubscribeServer.o ./src/paho.mqtt/MQTTPacket/src/MQTTUnsubscribeClient.o ./src/paho.mqtt/MQTTPacket/src/MQTTUnsubscribeServer.o  ./src/paho.mqtt/MQTTClient-C/MQTTClient.o  ./src/mqtt/MQTT_lpc1549.o ./src/mqtt/esp8266_socket.o ./src/mqtt/serial_port.o  ./src/modbus/ModbusMaster.o ./src/modbus/ModbusRegister.o ./src/modbus/SerialPort.o  ./src/DigitalIoPin.o ./src/Fan.o ./src/I2C.o ./src/IntegerEdit.o ./src/LiquidCrystal.o ./src/LpcUart.o ./src/MQTT.o ./src/MenuItem.o ./src/SimpleMenu.o ./src/StringEdit.o ./src/Vantilation_project.o ./src/cr_cpp_config.o ./src/cr_startup_lpc15xx.o ./src/crp.o ./src/main.o ./src/retarget_uart.o ./src/socket_mqtt.o ./src/sysinit.o   -llpc_board_nxp_lpcxpresso_1549 -llpc_chip_15xx
+Memory region         Used Size  Region Size  %age Used
+       MFlash256:      146708 B       256 KB     55.96%
+      Ram0_16_32:        3020 B        32 KB      9.22%
+          Ram2_4:          0 GB         4 KB      0.00%
+Finished building target: Vantilation_project.axf
+ 
+Performing post-build steps
+arm-none-eabi-size "Vantilation_project.axf"; # arm-none-eabi-objcopy -v -O binary "Vantilation_project.axf" "Vantilation_project.bin" ; # checksum -p LPC1549 -d "Vantilation_project.bin";
+   text	   data	    bss	    dec	    hex	filename
+ 144212	   2496	    524	 147232	  23f20	Vantilation_project.axf
+ 
+
+12:59:13 Build Finished. 0 errors, 6 warnings. (took 4s.639ms)
+

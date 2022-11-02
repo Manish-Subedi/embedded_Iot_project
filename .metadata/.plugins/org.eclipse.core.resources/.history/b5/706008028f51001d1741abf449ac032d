@@ -1,0 +1,264 @@
+
+#include "MainHeader.h"
+/*
+static volatile std::atomic_int counter;
+static volatile uint32_t systicks;
+#ifdef __cplusplus
+
+
+extern "C" {
+#endif
+
+void SysTick_Handler(void)
+{
+	systicks++;
+	if(counter > 0) counter--;
+}
+
+uint32_t get_ticks(void)
+{
+	return systicks;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+void Sleep(int ms)
+{
+	counter = ms;
+		while(counter > 0) {
+			__WFI(); // this put cpu in sleep mood until and interput
+		}
+}
+
+/* this function is required by the modbus library *//*
+uint32_t millis() {
+	return systicks;
+}
+*/
+
+
+/* function prototypes */
+uint16_t SDP_read(int16_t);
+void socketTest();
+void mqtt_init();
+uint32_t millis();
+void delay_systick(const int);
+void mqtt_message_handler(MessageData*);
+
+/* main function begins */
+int main(void)
+{
+
+#if defined (__USE_LPCOPEN)
+	// Read clock settings and update SystemCoreClock variable
+	SystemCoreClockUpdate();
+#if !defined(NO_BOARD_LIB)
+	// Set up and initialize all required blocks and
+	// functions related to the board hardware
+	Board_Init();
+	// Set the LED to the state of "On"
+	Board_LED_Set(0, true);
+#endif
+#endif
+	// this call initializes debug uart for stdout redirection
+	retarget_init();
+	/* Set up SWO to PIO1_2 */
+	Chip_SWM_MovablePortPinAssign(SWM_SWO_O, 1, 2); // Needed for SWO printf
+
+	/* Enable and setup SysTick Timer at a periodic rate */
+	SysTick_Config(SystemCoreClock / 1000);
+
+	/* configure LCD pinouts */
+	DigitalIoPin *rs = new DigitalIoPin(0, 29, DigitalIoPin::output);
+	DigitalIoPin *en = new DigitalIoPin(0, 9, DigitalIoPin::output);
+	DigitalIoPin *d4 = new DigitalIoPin(0, 10, DigitalIoPin::output);
+	DigitalIoPin *d5 = new DigitalIoPin(0, 16, DigitalIoPin::output);
+	DigitalIoPin *d6 = new DigitalIoPin(1, 3, DigitalIoPin::output);
+	DigitalIoPin *d7 = new DigitalIoPin(0, 0, DigitalIoPin::output);
+
+	LiquidCrystal *lcd = new LiquidCrystal(rs, en, d4, d5, d6, d7);
+
+	// configure display geometry
+	lcd->begin(16, 2);
+	lcd->setCursor(0, 0);
+	lcd->print("LCD Ready!");
+
+	/* Configure buttons */
+	DigitalIoPin sw1(1, 8, DigitalIoPin::pullup, true);
+	DigitalIoPin sw2(0, 5, DigitalIoPin::pullup, true);
+	DigitalIoPin sw3(0, 6, DigitalIoPin::pullup, true);
+	DigitalIoPin sw4(0, 7, DigitalIoPin::pullup, true);
+
+
+    /* Modbus node for fan */
+    ModbusMaster node_fan(1); // Create modbus object that connects to slave id 1
+	node_fan.begin(9600); // set transmission rate - other parameters are set inside the object and can't be changed here
+	ModbusRegister freq_fan(&node_fan, 0);
+	ModbusRegister pulse_fan(&node_fan, 4, false);
+
+
+	/* Modbus node for GMP252 co2 sensor */
+	ModbusMaster node_gmp(240);
+	node_gmp.begin(9600);
+	ModbusRegister co2(&node_gmp, 0x0101, false);
+
+
+	/* Modbus node for HMP60 temperature & humidity sensor */
+	ModbusMaster node_hmp(241);
+	node_hmp.begin(9600);
+	ModbusRegister rh(&node_hmp, 0x0100, false);
+	ModbusRegister temp(&node_hmp, 0x0101, false);
+
+	Chip_RIT_Init(LPC_RITIMER);
+
+	SimpleMenu menu;
+	std::string options[2] = { "Auto", "Manual" }; //define macro here
+	/* Events for sensor data */
+	IntegerEdit *frequency_ = new IntegerEdit(lcd, std::string("Frequency"), 0, 100); //define macro
+	IntegerEdit *pressure_ = new IntegerEdit(lcd, std::string("Pressure"), 0, 120); //define macro
+	IntegerEdit *target_ = new IntegerEdit(lcd, std::string("Target pressure"), 0, 120);
+	ModeEdit *modes_ = new ModeEdit(lcd, std::string("Mode"), options, 2);
+
+	menu.addItem(new MenuItem(modes_));
+	menu.addItem(new MenuItem(frequency_));
+	menu.addItem(new MenuItem(pressure_));
+	menu.addItem(new MenuItem(target_));
+
+	menu.event(MenuItem::show);
+
+	//SleepMilli sleep;
+	//socketTest();
+	MqttController mqtt(mqtt_message_handler);
+	mqtt.Mqtt_start(NETWORK_SSID, NETWORK_PASS, MQTT_IP, MQTT_PORT);
+
+	while(1){
+
+		/*
+		int fan_speed = 6;
+		freq_fan.write(fan_speed*100); //frequency 200
+
+		printf("frequency of the fan is %4d\n", fan_speed*100);
+		*/
+		/* menu set values
+		speed_->setValue(fan_speed);
+		pressure_->setValue(pressure);
+		*/
+
+		int current_pressure = 0; //read this from MQTT
+		int current_freq = 0; //get from MQTT
+
+		if(sw1.read()){
+			while(sw1.read());
+			menu.event(MenuItem::up);
+		}
+		if(sw2.read()){
+			while(sw2.read());
+			menu.event(MenuItem::ok);
+		}
+		/*
+		if(sw2.read()){
+			while(sw2.read());
+			if(modes_[0].getFocus()){
+				if(frequency_->getFocus()){
+					freq_fan.write((frequency_->getValue())*100);
+					menu.event(MenuItem::ok);
+				}
+			}
+				if(pressure_->getFocus()){
+					if(pressure_->getValue() < current_pressure){
+						while(!(pressure_->getValue() == current_pressure)){
+							current_freq++;
+						}
+						freq_fan.write(current_freq*100);
+					}
+					if(pressure_->getValue() > current_pressure){
+						while(!(pressure_->getValue() == current_pressure)){
+							current_freq--;
+						}
+						freq_fan.write(current_freq*100);
+					}
+					menu.event(MenuItem::ok);
+				}
+		}
+		*/
+		if(sw3.read()){
+			while(sw3.read());
+			menu.event(MenuItem::down);
+
+		}
+	}
+
+}
+
+
+
+
+/*
+ **** FUNCTION DEFINITIONS START ****
+ */
+
+void delay_systick(const int ticks)
+{
+	int delay = ticks;
+	while (delay > 0) {
+		__WFI();
+	}
+}
+
+/* required by modbus library */
+uint32_t millis(){
+	return SleepMilli::get_ticks();
+}
+
+/* read data from Sensirion SDP610 – 120Pa pressure sensor */
+uint16_t SDP_read(int16_t pressure){
+
+	/* I2C objects and config */
+	I2C_config cfg_i2c ;
+	I2C i2c(cfg_i2c);
+
+	uint8_t tx[1];
+	uint8_t rx[3];
+
+	tx[0]=SDP_CMD_READ;
+
+	i2c.transaction(SDP_ADDRESS,tx,1,rx,3);
+
+	// Combine read bytes
+	uint16_t raw = (rx[0] << 8) | rx[1];
+
+	// uint containing two's complement -> int16
+	if (raw & 0x8000) {
+		raw = -~(raw - 1);
+	}
+	pressure = raw;
+
+	// Scaling
+	pressure /= 240;
+
+	// altitude correction
+	pressure *= 0.95;
+	printf("Pressure: %d\n",pressure);
+	return pressure;
+}
+
+void mqtt_message_handler(MessageData* data)
+{
+	mqtt_message_arrived = true;
+	mqtt_message = "";
+
+	// Parse message from payload
+	char payload_parsed[READ_BUF_LENGTH];
+	snprintf(
+			payload_parsed,
+			data->message->payloadlen + 1,
+			"%.*s",
+			data->message->payloadlen,
+			(char *)data->message->payload
+	);
+	mqtt_message = payload_parsed;
+}
+/* Get fan frequency and pulse counts */
+

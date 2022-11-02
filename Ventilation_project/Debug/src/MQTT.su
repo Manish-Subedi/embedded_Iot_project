@@ -1,0 +1,9 @@
+c:\nxp\mcuxpressoide_11.5.0_7232\ide\plugins\com.nxp.mcuxpresso.tools.win32_11.5.0.202107051138\tools\arm-none-eabi\include\c++\10.3.1\arm-none-eabi\thumb\v7-m\nofp\bits\gthr-default.h:229:1:int __gthread_key_delete(__gthread_key_t)	16	static
+../src/MQTT.cpp:15:1:MQTT::MQTT(void (*)(MessageData*))	16	static
+../src/MQTT.cpp:22:5:int MQTT::connect(const char*, const char*, char*, int)	48	static
+../src/MQTT.cpp:38:6:void MQTT::disconnect()	16	static
+../src/MQTT.cpp:43:5:int MQTT::subscribe(const char*)	16	static
+../src/MQTT.cpp:49:5:int MQTT::publish(const char*, char*, size_t)	40	static
+../src/MQTT.cpp:62:5:int MQTT::publish(const char*, std::string, size_t)	24	static
+../src/MQTT.cpp:67:5:int MQTT::yield(int)	16	static
+../src/MQTT.cpp:73:5:int MQTT::get_status() const	16	static

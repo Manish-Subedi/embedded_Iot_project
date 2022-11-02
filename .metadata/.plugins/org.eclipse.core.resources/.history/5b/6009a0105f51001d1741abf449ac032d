@@ -1,0 +1,28 @@
+/*
+ * MqttController.h
+ *
+ *  Created on: 21 Oct 2022
+ *      Author: Manish
+ */
+
+#ifndef SRC_MQTTCONTROLLER_H_
+#define SRC_MQTTCONTROLLER_H_
+#include "../src/paho-mqtt/MQTTClient-C/src/MQTTClient.h"
+
+class MqttController {
+public:
+	MqttController(const char* ssid, const char* password, char* ip, int port);
+	virtual ~MqttController();
+private:
+	MQTTClient client;
+	Network network;
+	MQTTPacket_connectData connectData;
+
+	const char* ssid;
+	const char* password;
+	char* ip;
+	int port;
+	int rc = 0, count = 0;
+};
+
+#endif /* SRC_MQTTCONTROLLER_H_ */

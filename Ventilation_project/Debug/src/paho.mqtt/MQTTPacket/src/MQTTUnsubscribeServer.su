@@ -1,0 +1,2 @@
+../src/paho.mqtt/MQTTPacket/src/MQTTUnsubscribeServer.c:33:5:MQTTDeserialize_unsubscribe	48	static
+../src/paho.mqtt/MQTTPacket/src/MQTTUnsubscribeServer.c:75:5:MQTTSerialize_unsuback	40	static

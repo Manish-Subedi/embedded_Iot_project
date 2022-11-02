@@ -1,0 +1,5 @@
+../src/Fan.cpp:21:1:Fan::Fan()	344	static
+../src/Fan.cpp:37:1:Fan::~Fan()	16	static
+../src/Fan.cpp:37:1:virtual Fan::~Fan()	16	static
+../src/Fan.cpp:41:6:bool Fan::setFrequency(int)	32	static
+../src/Fan.cpp:71:10:uint16_t Fan::getFrequency()	48	static

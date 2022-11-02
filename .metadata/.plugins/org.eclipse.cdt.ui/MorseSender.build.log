@@ -1,0 +1,11 @@
+10:49:29 **** Incremental Build of configuration Debug for project MorseSender ****
+make -r -j4 all 
+make[1]: Nothing to be done for 'main-build'.
+Performing post-build steps
+arm-none-eabi-size "MorseSender.axf"; # arm-none-eabi-objcopy -v -O binary "MorseSender.axf" "MorseSender.bin" ; # checksum -p LPC1549 -d "MorseSender.bin";
+   text	   data	    bss	    dec	    hex	filename
+  64752	   2480	    532	  67764	  108b4	MorseSender.axf
+ 
+
+10:49:29 Build Finished. 0 errors, 0 warnings. (took 268ms)
+

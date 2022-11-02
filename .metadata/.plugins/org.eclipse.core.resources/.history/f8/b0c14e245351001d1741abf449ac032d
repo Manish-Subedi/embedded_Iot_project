@@ -1,0 +1,17 @@
+/*
+ * MQTThandle.h
+ *
+ *  Created on: 21 Oct 2022
+ *      Author: Manish
+ */
+
+#ifndef SRC_MQTTCONTROLLER_H_
+#define SRC_MQTTCONTROLLER_H_
+
+class MQTT_handle {
+public:
+	MQTT_handle();
+	virtual ~MQTT_handle();
+};
+
+#endif /* SRC_MQTTCONTROLLER_H_ */

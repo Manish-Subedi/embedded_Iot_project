@@ -1,0 +1,188 @@
+/*
+ * LCD_task1.cpp
+ *
+ *  Created on: 7 Oct 2022
+ *      Author: ahmed
+ */
+
+
+#if 1
+#include"board.h"
+#include "DigitalIoPin.h"
+
+#include <atomic>
+#include <stdio.h>
+#include <ctype.h>
+//#include "Sleep.h"
+#include "LpcUart.h"
+#include "ritimer_15xx.h"
+#include "LiquidCrystal.h"
+
+#include "I2C.h"
+//#include "ITMwarpper.h"
+#include "./modbus/ModbusMaster.h"
+#include "./modbus/ModbusRegister.h"
+#include "Fan.h"
+
+
+#include <cr_section_macros.h>
+#include <atomic>
+static volatile std::atomic_int counter;
+static volatile uint32_t systicks;
+#ifdef __cplusplus
+
+
+extern "C" {
+#endif
+
+void SysTick_Handler(void)
+{
+	systicks++;
+	if(counter > 0) counter--;
+}
+
+uint32_t get_ticks(void)
+{
+	return systicks;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+void Sleep(int ms)
+{
+	counter = ms;
+		while(counter > 0) {
+			__WFI(); // this put cpu in sleep mood until and interput
+		}
+}
+
+/* this function is required by the modbus library */
+uint32_t millis() {
+	return systicks;
+}
+
+
+int main(void)
+{
+
+#if defined (__USE_LPCOPEN)
+	// Read clock settings and update SystemCoreClock variable
+	SystemCoreClockUpdate();
+#if !defined(NO_BOARD_LIB)
+	// Set up and initialize all required blocks and
+	// functions related to the board hardware
+	Board_Init();
+	// Set the LED to the state of "On"
+	Board_LED_Set(0, true);
+#endif
+#endif
+
+	/* Enable and setup SysTick Timer at a periodic rate */
+	SysTick_Config(SystemCoreClock / 1000);
+
+	char buffer[33];
+	 LpcPinMap none = {-1, -1}; // unused pin has negative values in it
+	LpcPinMap txpin = { 0, 18 }; // transmit pin that goes to debugger's UART->USB converter
+	LpcPinMap rxpin = { 0, 13 }; // receive pin that goes to debugger's UART->USB converter
+	LpcUartConfig cfg = { LPC_USART0, 115200, UART_CFG_DATALEN_8 | UART_CFG_PARITY_NONE | UART_CFG_STOPLEN_1, false, txpin, rxpin, none, none };
+	LpcUart dbgu(cfg);
+
+	I2C_config cfgg ;
+	I2C i2c(cfgg);
+
+
+	DigitalIoPin *rs = new DigitalIoPin(0, 29, DigitalIoPin::output);
+	DigitalIoPin *en = new DigitalIoPin(0, 9, DigitalIoPin::output);
+	DigitalIoPin *d4 = new DigitalIoPin(0, 10, DigitalIoPin::output);
+	DigitalIoPin *d5 = new DigitalIoPin(0, 16, DigitalIoPin::output);
+	DigitalIoPin *d6 = new DigitalIoPin(1, 3, DigitalIoPin::output);
+	DigitalIoPin *d7 = new DigitalIoPin(0, 0, DigitalIoPin::output);
+	LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+	// configure display geometry
+	lcd.begin(16, 2);
+	lcd.setCursor(0, 0);
+	sprintf(buffer, "%s", "Welcome..");
+	lcd.print(buffer);
+
+	DigitalIoPin sw1(1, 8, DigitalIoPin::pullup, true);
+	DigitalIoPin sw2(0, 5, DigitalIoPin::pullup, true);
+	DigitalIoPin sw3(0, 6, DigitalIoPin::pullup, true);
+	DigitalIoPin sw4(0, 7, DigitalIoPin::pullup, true);
+
+
+
+    uint8_t tx[1];
+    uint8_t rx[3];
+    //Fan fan;
+    ModbusMaster node(1); // Create modbus object that connects to slave id 1
+	node.begin(9600); // set transmission rate - other parameters are set inside the object and can't be changed here
+
+	ModbusRegister AO1(&node, 0);
+	ModbusRegister DI1(&node, 4, false);
+
+	ModbusMaster node1(240);
+	node1.begin(9600);
+	//ModbusRegister AO11(&node1, 0);
+	ModbusRegister DI11(&node1, 4, false);
+	while(1){
+		//setFrequency(node,0);
+		//fan.setFrequency(50);
+		AO1.write(2*100);
+		snprintf(buffer, 50,"\n\rAO1=%4d\n", (int) 2*100);
+		dbgu.write(buffer);
+		Sleep(1000);
+		snprintf(buffer, 50,"\n\rDI1=%4d\n", DI1.read());
+		dbgu.write(buffer);
+		Sleep(1000);
+
+		//AO11.write(0);
+		//snprintf(buffer, 50,"\n\rAO11=%4d\n", (int) 0);
+		//dbgu.write(buffer);
+		//Sleep(1000);
+		snprintf(buffer, 50,"\n\rDI11 temp=%4d\n", DI11.read());
+		dbgu.write(buffer);
+		Sleep(1000);
+
+		tx[0]=0xF1;
+
+		if (i2c.transaction(0x40,tx,1,rx,3)) {
+			int16_t pressure;
+			// Combine reading bytes
+			uint16_t raw = (rx[0] << 8) | rx[1];
+			// uint containing two's complement -> int16
+			if (raw & 0x8000) {
+				raw = -~(raw - 1);
+			}
+			pressure = raw;
+
+			// Scale value
+			pressure /= 240;
+
+			// Correct considering altitude
+			pressure *= 0.95;
+			snprintf(buffer, 50, "\n\rPressure: %d\n",pressure);
+			dbgu.write(buffer);
+
+		} else {
+			dbgu.write("Error reading Pressure.\r\n");
+
+		}
+		//static uint32_t i;
+		//uint8_t j, result;
+		//uint16_t data[6];
+		//for(j=0; j>2; j++)
+		Sleep(100);
+
+	}
+
+}
+void delay_systick(const int ticks)
+{
+	int delay = ticks;
+	while (delay > 0) {
+		__WFI();
+	}
+}
+#endif

@@ -1,0 +1,18 @@
+/*
+ * MQTThandle.cpp
+ *
+ *  Created on: 21 Oct 2022
+ *      Author: Manish
+ */
+
+#include "MQTTController.h"
+
+MQTT_handle::MQTT_handle() {
+	// TODO Auto-generated constructor stub
+
+}
+
+MQTT_handle::~MQTT_handle() {
+	// TODO Auto-generated destructor stub
+}
+

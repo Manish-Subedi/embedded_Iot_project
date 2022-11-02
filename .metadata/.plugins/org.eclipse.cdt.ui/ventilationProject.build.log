@@ -1,0 +1,11 @@
+22:16:10 **** Incremental Build of configuration Debug for project ventilationProject ****
+make -r -j4 all 
+make[1]: Nothing to be done for 'main-build'.
+Performing post-build steps
+arm-none-eabi-size "ventilationProject.axf"; # arm-none-eabi-objcopy -v -O binary "ventilationProject.axf" "ventilationProject.bin" ; # checksum -p LPC1549 -d "ventilationProject.bin";
+   text	   data	    bss	    dec	    hex	filename
+  56592	   2484	    176	  59252	   e774	ventilationProject.axf
+ 
+
+22:16:10 Build Finished. 0 errors, 0 warnings. (took 376ms)
+
