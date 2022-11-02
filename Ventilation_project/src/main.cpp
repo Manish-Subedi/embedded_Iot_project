@@ -237,7 +237,6 @@ int main(void) {
 	/* jsmn-JSON config */
 	jsmn_parser p;
 	jsmntok_t tokens[256];
-	jsmn_init(&p);
 
 	/* main loop */
     while(1) {
@@ -290,7 +289,9 @@ int main(void) {
 
 		}
 		Sleep(1000);
-#if 0
+#if 1
+		jsmn_init(&p);
+
 			if(mqtt_message_arrived){
 				mqtt_message_arrived = false;
 				printf((mqtt_message + "\r\n").c_str());
@@ -349,6 +350,7 @@ int main(void) {
 						modes->setValue(0);
 				}
 				menu.event(MenuItem::show);
+				memset(tokens, 0, 256);
 			}
 #endif
 		std::string sample = sample_json(nr, freq->getValue(), spt_updated, pres->getValue(), m_sta_mode[modes->getValue()], m_sta[mqtt_status], co2_.read(), rh_.read(), temp_.read());
