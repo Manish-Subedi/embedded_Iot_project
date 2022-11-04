@@ -113,10 +113,28 @@ int main(void) {
     // Set up and initialize all required blocks and
     // functions related to the board hardware
     Board_Init();
-    // Set the LED to the state of "On"
-    Board_LED_Set(0, true);
 #endif
 #endif
+    /* check watchdog status flag */
+	uint32_t wdStatus = Chip_WWDT_GetStatus(LPC_WWDT);
+	if(wdStatus) {
+		Board_LED_Set(2, true); //set red led if reset caused by watchdog
+	}
+	else Board_LED_Set(1, true); //else green led
+    uint32_t wdtFreq;
+    /* Enable the WDT oscillator */
+    Chip_SYSCTL_PowerUp(SYSCTL_POWERDOWN_WDTOSC_PD);
+    /* The WDT divides the input frequency into it by 4 */
+    wdtFreq = Chip_Clock_GetWDTOSCRate() / 4;
+    /* Initialize WWDT (also enables WWDT clock) */
+    Chip_WWDT_Init(LPC_WWDT);
+    /* Set watchdog feed time constant to approximately 30s */
+    Chip_WWDT_SetTimeOut(LPC_WWDT, wdtFreq * 60);
+	/* Configure WWDT to reset on timeout */
+	Chip_WWDT_SetOption(LPC_WWDT, WWDT_WDMOD_WDRESET);
+	/* Start watchdog */
+	Chip_WWDT_Start(LPC_WWDT);
+
 
     // this call initializes debug uart for stdout redirection
 	retarget_init();
@@ -166,8 +184,9 @@ int main(void) {
 	LpcUartConfig cfg_d = { LPC_USART0, 115200, UART_CFG_DATALEN_8 | UART_CFG_PARITY_NONE | UART_CFG_STOPLEN_1, false, txpin, rxpin, none, none };
 
 	LpcUart dbgu(cfg_d);
+
+	dbgu.write("\n\rHello World!\r\n"); //testing debug port
 #endif
-	//dbgu.write("\n\rHello World!\r\n"); //testing debug port
 
 	std::string options[2] = { "Manual", "Auto" };
 
@@ -221,7 +240,6 @@ int main(void) {
 	rh->setValue(0);
 	co2->setValue(0);
 
-	char buffer[150];
 	int mqtt_status = 0;
 
 	/* variables in publish */
@@ -229,8 +247,8 @@ int main(void) {
 	int current_pressure = 0;
 	int current_freq = 0;
 	int spt_updated = 0;
-	char *m_sta[2] = { "false", "true" };
-	char *m_sta_mode[2] = { "false", "true" };
+	const char *m_sta[2] = { "false", "true" };
+	const char *m_sta_mode[2] = { "false", "true" };
 
 	/* jsmn-JSON config */
 	jsmn_parser p;
@@ -239,10 +257,13 @@ int main(void) {
 	/* main loop */
     while(1) {
 		pres->setValue((int) SDP_read());
-		temp->setValue(temp_.read());
-		rh->setValue(rh_.read());
-		co2->setValue(co2_.read());
-
+		Sleep(100);
+		temp->setValue(temp_.read()/10);
+		Sleep(100);
+		rh->setValue(rh_.read()/10);
+		Sleep(100);
+		co2->setValue((co2_.read()/10)*100);
+		Sleep(100);
     	current_pressure = pres->getValue();
     	current_freq = freq->getValue();
 
@@ -310,11 +331,11 @@ int main(void) {
 #endif
 		if(modes->getValue() == 1){
 			int tolerance = 2;
-			printf("cf:%d s:%d  c:%d  t:%d\n",current_freq, freq->getValue(), current_pressure, t_pres->getValue());
+			//printf("cf:%d s:%d  c:%d  t:%d\n",current_freq, freq->getValue(), current_pressure, t_pres->getValue());
 			if(abs(t_pres->getValue() - current_pressure) > tolerance){
 				double diff = (t_pres->getValue() - current_pressure) / (double)120;
 					signed int diff_ = (signed int)(diff * 50);
-					printf("d:%f d_:%d", diff, diff_);
+					//printf("d:%f d_:%d", diff, diff_);
 					current_freq += diff_;
 					/* limiting the values within the range */
 					if(current_freq > 100) current_freq = 100;
@@ -323,15 +344,19 @@ int main(void) {
 			freq_fan.write(current_freq*10);
 			Sleep(500);
 			freq->setValue(current_freq);
-			printf("nr:%d cf:%d s:%d  c:%d  t:%d\n",nr, current_freq, freq->getValue(), current_pressure, t_pres->getValue());
+			//printf("nr:%d cf:%d s:%d  c:%d  t:%d\n",nr, current_freq, freq->getValue(), current_pressure, t_pres->getValue());
 		}
 
-		std::string sample = sample_json(nr, freq->getValue(), spt_updated, pres->getValue(), m_sta_mode[modes->getValue()], m_sta[mqtt_status], co2_.read(), rh_.read(), temp_.read());
+		std::string sample = sample_json(nr, freq->getValue(), spt_updated, pres->getValue(), m_sta_mode[modes->getValue()], m_sta[mqtt_status], (co2_.read()/10)*100, (rh_.read()/10), (temp_.read()/10));
 		mqtt_status = mqtt.publish(MQTT_TOPIC_SEND, sample, sample.length());
 
 		nr++;
 		menu.event(MenuItem::show);
 		//mqtt.yield(200);
+
+
+		/* feed the WatchDog timer */
+		Chip_WWDT_Feed(LPC_WWDT);
     }
     return 0 ;
 }
