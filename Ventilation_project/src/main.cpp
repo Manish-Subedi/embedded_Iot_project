@@ -2,18 +2,13 @@
 ===============================================================================
  Name        : main.c
  Author      : Manish Subedi
- Version     :
+ Version     : release 1.0
  Copyright   : $(copyright)
  Description : main definition
 ===============================================================================
 */
 
-
 #include "MainHeader.h"
-
-// TODO: insert other include files here
-
-// TODO: insert other definitions and declarations here
 
 
 #ifdef __cplusplus
@@ -52,13 +47,13 @@ extern "C" {
 		button_pressed_time = millis();
 
 		if(menu.getPos() == 0) menu.event(MenuItem::ok);
-		//check if mode is auto
+		//check if mode is auto and set pressure is focused
 		if(modes->getValue() == 1 && menu.getPos() == 3){
 			//allow setting pressure
 			menu.event(MenuItem::ok);
 		}
-		if(modes->getValue() == 0 && menu.getPos() == 4){ //check if mode is manual
-			menu.event(MenuItem::ok); //allow only set-frequency
+		if(modes->getValue() == 0 && menu.getPos() == 4){ //check if mode is manual and set speed is focused
+			menu.event(MenuItem::ok); //allow setting speed
 		}
 	}
 	void PIN_INT2_IRQHandler(void){
@@ -160,34 +155,25 @@ int main(void) {
 	lcd.setCursor(0, 0);
 	lcd.print("LCD Ready!");
 
-	/* GPIO interrupt and button init */
+	/* GPIO interrupts and button init */
 	DigitalIoPin::GPIO_Interrupt_init();
 	sw1.enable_interrupt(0);
 	sw2.enable_interrupt(1);
 	sw3.enable_interrupt(2);
 
-#if 0
-	LpcPinMap none = {-1, -1}; // unused pin has negative values in it
-	LpcPinMap txpin = { 0, 18 }; // transmit pin that goes to debugger's UART->USB converter
-	LpcPinMap rxpin = { 0, 13 }; // receive pin that goes to debugger's UART->USB converter
-	LpcUartConfig cfg_d = { LPC_USART0, 115200, UART_CFG_DATALEN_8 | UART_CFG_PARITY_NONE | UART_CFG_STOPLEN_1, false, txpin, rxpin, none, none };
-
-	LpcUart dbgu(cfg_d);
-
-	dbgu.write("\n\rHello World!\r\n"); //testing debug port
-#endif
-
+	/* modes for the control on LCD */
 	std::string options[2] = { "Manual", "Auto" };
 
 	modes = new StringEdit(&lcd, std::string("Mode"), options, 2);
 	IntegerEdit *freq = new IntegerEdit(&lcd, std::string("Speed"), 0, 100, 2);
 	IntegerEdit *pres = new IntegerEdit(&lcd, std::string("Pressure"), 0, 120, 2);
-	IntegerEdit *t_pres = new IntegerEdit(&lcd, std::string("Target Pressure"), 0, 120, 1 );
+	IntegerEdit *t_pres = new IntegerEdit(&lcd, std::string("Target Pressure"), 0, 120, 2);
 	IntegerEdit *t_freq = new IntegerEdit(&lcd, std::string("Target Speed"), 0, 100, 2);
 	IntegerEdit *temp = new IntegerEdit(&lcd, std::string("Temperature"), 0, 100, 1);
 	IntegerEdit *rh = new IntegerEdit(&lcd, std::string("RH"), 0, 100, 1);
 	IntegerEdit *co2 = new IntegerEdit(&lcd, std::string("CO2"), 0, 1000, 10);
 
+	/* Menu item objects */
 	menu.addItem(new MenuItem(modes));
 	menu.addItem(new MenuItem(freq));
 	menu.addItem(new MenuItem(pres));
@@ -197,29 +183,8 @@ int main(void) {
 	menu.addItem(new MenuItem(rh));
 	menu.addItem(new MenuItem(co2));
 
-	menu.event(MenuItem::show);
-#if 0
-	/* Modbus node for fan */
-	ModbusMaster node_fan(1); // Create modbus object that connects to slave id 1
-	node_fan.begin(9600); // set transmission rate - other parameters are set inside the object and can't be changed here
-	ModbusRegister freq_fan(&node_fan, 0);
-	ModbusRegister pulse_fan(&node_fan, 4, false);
-	Sleep(200);
-
-	/* Modbus node for GMP252 co2 sensor */
-	ModbusMaster node_gmp(240);
-	node_gmp.begin(9600);
-	ModbusRegister co2_(&node_gmp, 0x0101, true);
-	Sleep(200);
-
-	/* Modbus node for HMP60 temperature & humidity sensor */
-	ModbusMaster node_hmp(241);
-	node_hmp.begin(9600);
-	ModbusRegister rh_(&node_hmp, 0x0100, true);
-	ModbusRegister temp_(&node_hmp, 0x0101, true);
-	Sleep(200);
-#endif
-
+	/*configure modbus transmission and initalize */
+	/* this initializes comms with HMP60, GMP252, and the Produal MIO (fan) */
 	modbusConfig modbus;
 
 	/* LCD UI readings and control system config */
@@ -248,55 +213,51 @@ int main(void) {
 
 	/* main loop */
     while(1) {
-		pres->setValue((int) SDP_read());
-		Sleep(100);
 		temp->setValue(modbus.get_temp());
 		Sleep(100);
-		rh->setValue(modbus.get_rh());
+		pres->setValue((int) SDP_read());
 		Sleep(100);
 		co2->setValue(modbus.get_co2());
-		Sleep(100);
+		Sleep(200);
+		rh->setValue(modbus.get_rh());
+		
     	current_pressure = pres->getValue();
     	current_freq = freq->getValue();
 
-#if 1
-		if (IntegerEdit::saved_ == true || StringEdit::saved_ == true) {
-			//if set pressure
+		if (IntegerEdit::saved_ == true) {
 			if((menu.getPos() == 4) && (current_freq != t_freq->getValue())){
 				modbus.set_speed(t_freq->getValue());
 				Sleep(50);
 				freq->setValue(t_freq->getValue());
 			}
-			menu.event(MenuItem::show);
 			IntegerEdit::saved_ = false;
-			StringEdit::saved_ = false;
-
 		}
-#endif
-#if 1
+
+		/* read the mode setting and the set-value in this function */
 		if(mqtt_message_arrived){
-			jsmn_init(&p);
+			jsmn_init(&p); 
 			mqtt_message_arrived = false;
-			printf((mqtt_message + "\r\n").c_str());
+			//printf((mqtt_message + "\r\n").c_str());
 			const char *mqtt_message_ = mqtt_message.c_str();
 			jsmn_parse(&p, mqtt_message_, 100, tokens, 256);
 
-			//check for the mode from Web UI
-			jsmntok_t key = tokens[2]; //the second token holds the mode (true/false)
+			/* check for the mode from Web UI */
+			jsmntok_t key = tokens[2]; /* the second token holds the mode (true/false) */
 			unsigned int length = key.end - key.start;
 			char set_mode[length + 1];
 			memcpy(set_mode, &mqtt_message_[key.start], length);
 			set_mode[length] = '\0';
-			printf("Key: %s\n", set_mode);
+			//printf("Key: %s\n", set_mode);
 
-
-			//read the set value
-			jsmntok_t key_ = tokens[4]; //the 4th token holds the setpoint integer
+			/* read the set value */
+			jsmntok_t key_ = tokens[4]; /* the 4th token holds the setpoint integer as a string */
 			unsigned int length_ = key_.end - key_.start;
 			char set_point[length_ + 1];
 			memcpy(set_point, &mqtt_message_[key_.start], length_);
 			set_point[length_] = '\0';
-			printf("Key: %s\n", set_point);
+			//printf("Key: %s\n", set_point);
+
+			/* convert the string into integer */
 			spt_updated = std::stoi(set_point);
 
 			if (strncmp("false", set_mode, 5) == 0) {
@@ -314,16 +275,14 @@ int main(void) {
 			memset(tokens, 0 , 256);
 		}
 #endif
-		//if in auto mode
+		/* if in auto mode */
 		if(modes->getValue() == 1){
-
 			int tolerance = 2;
-			//printf("cf:%d s:%d  c:%d  t:%d\n",current_freq, freq->getValue(), current_pressure, t_pres->getValue());
 			if(abs(t_pres->getValue() - current_pressure) > tolerance){
 				double diff = (t_pres->getValue() - current_pressure) / (double)120;
-					signed int diff_ = (signed int)(diff * 50);
-					//printf("d:%f d_:%d", diff, diff_);
+					signed int diff_ = (signed int)(diff * 50);				
 					current_freq += diff_;
+					
 					/* limiting the values within the range */
 					if(current_freq > 100) current_freq = 100;
 					else if(current_freq < 0) current_freq = 0;
@@ -331,9 +290,8 @@ int main(void) {
 			modbus.set_speed(current_freq*10);
 			Sleep(500);
 			freq->setValue(current_freq);
-			//printf("nr:%d cf:%d s:%d  c:%d  t:%d\n",nr, current_freq, freq->getValue(), current_pressure, t_pres->getValue());
 		}
-
+		/* create a json object for publishing */ 
 		std::string sample = sample_json(nr, freq->getValue(), spt_updated, pres->getValue(), m_sta_mode[modes->getValue()], m_sta[mqtt_status], modbus.get_co2(), modbus.get_rh(), modbus.get_temp());
 		mqtt_status = mqtt.publish(MQTT_TOPIC_SEND, sample, sample.length());
 
@@ -368,7 +326,7 @@ uint16_t SDP_read(){
 	// Combine read bytes
 	uint16_t raw = (rx[0] << 8) | rx[1];
 
-	// uint containing two's complement -> int16
+	// uint containing two's complement
 	if (raw & 0x8000) {
 		raw = -~(raw - 1);
 	}
@@ -388,6 +346,7 @@ void delay_systick(const int ticks){
 		__WFI();
 	}
 }
+
 
 void message_handler(MessageData* data)
 {
