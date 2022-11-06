@@ -17,6 +17,7 @@
 #include <ctype.h>
 #include <cstring>
 #include <string>
+#include <cstdlib>
 
 #include "DigitalIoPin.h"
 #include "LpcUart.h"
@@ -32,7 +33,7 @@
 #include "paho.mqtt/MQTTClient-C/MQTTClient.h"
 #include "jsmn.h"
 #include "MQTT.h"
-
+#include "modbusConfig.h"
 #include "json.hpp"
 
 #define SDP_CMD_READ (0xF1)
@@ -51,11 +52,6 @@
 static volatile int counter;
 static volatile uint32_t systicks(0);
 
-#define SEND_BUF_LENGTH 256
-#define READ_BUF_LENGTH 2556
-#define MQTT_TIMEOUT    30000
-#define MQTT_VERSION    3
-#define CLIENT_ID       (char *)"group5"
 #define MAX_DEBOUNCE 30
 
 

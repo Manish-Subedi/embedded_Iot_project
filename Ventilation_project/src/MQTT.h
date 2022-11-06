@@ -15,7 +15,7 @@
 #define READ_BUF_LENGTH 2556
 #define MQTT_TIMEOUT    30000
 #define MQTT_VERSION    3
-#define CLIENT_ID       "lpcgrp07"
+#define CLIENT_ID       (char *)"group5"
 
 
 class MQTT {

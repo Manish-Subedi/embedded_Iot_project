@@ -70,17 +70,6 @@ extern "C" {
 
 		menu.event(MenuItem::down);
 	}
-	/*
-	void PIN_INT3_IRQHandler(void){
-		Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(3));
-
-		// make sure up is only executed once on button debounce
-		if (millis() - button_pressed_time < MAX_DEBOUNCE) return;
-		button_pressed_time = millis();
-
-		menu.event(MenuItem::back);
-	}*/
-
 
 #ifdef __cplusplus
 }
@@ -118,7 +107,7 @@ int main(void) {
     /* check watchdog status flag */
 	uint32_t wdStatus = Chip_WWDT_GetStatus(LPC_WWDT);
 	if(wdStatus) {
-		Board_LED_Set(2, true); //set red led if reset caused by watchdog
+		Board_LED_Set(2, true); //set blue led if reset caused by watchdog
 	}
 	else Board_LED_Set(1, true); //else green led
     uint32_t wdtFreq;
@@ -128,7 +117,7 @@ int main(void) {
     wdtFreq = Chip_Clock_GetWDTOSCRate() / 4;
     /* Initialize WWDT (also enables WWDT clock) */
     Chip_WWDT_Init(LPC_WWDT);
-    /* Set watchdog feed time constant to approximately 30s */
+    /* Set watchdog feed time constant to approximately 60s */
     Chip_WWDT_SetTimeOut(LPC_WWDT, wdtFreq * 60);
 	/* Configure WWDT to reset on timeout */
 	Chip_WWDT_SetOption(LPC_WWDT, WWDT_WDMOD_WDRESET);
@@ -191,7 +180,7 @@ int main(void) {
 	std::string options[2] = { "Manual", "Auto" };
 
 	modes = new StringEdit(&lcd, std::string("Mode"), options, 2);
-	IntegerEdit *freq = new IntegerEdit(&lcd, std::string("Frequency"), 0, 100, 2);
+	IntegerEdit *freq = new IntegerEdit(&lcd, std::string("Speed"), 0, 100, 2);
 	IntegerEdit *pres = new IntegerEdit(&lcd, std::string("Pressure"), 0, 120, 2);
 	IntegerEdit *t_pres = new IntegerEdit(&lcd, std::string("Target Pressure"), 0, 120, 1 );
 	IntegerEdit *t_freq = new IntegerEdit(&lcd, std::string("Target Speed"), 0, 100, 2);
@@ -209,7 +198,7 @@ int main(void) {
 	menu.addItem(new MenuItem(co2));
 
 	menu.event(MenuItem::show);
-
+#if 0
 	/* Modbus node for fan */
 	ModbusMaster node_fan(1); // Create modbus object that connects to slave id 1
 	node_fan.begin(9600); // set transmission rate - other parameters are set inside the object and can't be changed here
@@ -229,11 +218,14 @@ int main(void) {
 	ModbusRegister rh_(&node_hmp, 0x0100, true);
 	ModbusRegister temp_(&node_hmp, 0x0101, true);
 	Sleep(200);
+#endif
+
+	modbusConfig modbus;
 
 	/* LCD UI readings and control system config */
 	modes->setValue(0);
 	freq->setValue(0);
-	freq_fan.write(0);
+	modbus.set_speed(0);
 	pres->setValue(0);
 	t_pres->setValue(0);
 	temp->setValue(0);
@@ -258,37 +250,31 @@ int main(void) {
     while(1) {
 		pres->setValue((int) SDP_read());
 		Sleep(100);
-		temp->setValue(temp_.read()/10);
+		temp->setValue(modbus.get_temp());
 		Sleep(100);
-		rh->setValue(rh_.read()/10);
+		rh->setValue(modbus.get_rh());
 		Sleep(100);
-		co2->setValue((co2_.read()/10)*100);
+		co2->setValue(modbus.get_co2());
 		Sleep(100);
     	current_pressure = pres->getValue();
     	current_freq = freq->getValue();
 
-
+#if 1
 		if (IntegerEdit::saved_ == true || StringEdit::saved_ == true) {
 			//if set pressure
-			if(menu.getPos() == 4){
-				//checking if current speed is same as target
-				if(current_freq != t_freq->getValue()){
-					freq_fan.write(t_freq->getValue()*10);
-					Sleep(100);
-					freq->setValue(t_freq->getValue());
-					pres->setValue((int) SDP_read());
-				}
+			if((menu.getPos() == 4) && (current_freq != t_freq->getValue())){
+				modbus.set_speed(t_freq->getValue());
+				Sleep(50);
+				freq->setValue(t_freq->getValue());
 			}
-			Sleep(10);
 			menu.event(MenuItem::show);
 			IntegerEdit::saved_ = false;
 			StringEdit::saved_ = false;
 
 		}
-
+#endif
 #if 1
 		if(mqtt_message_arrived){
-
 			jsmn_init(&p);
 			mqtt_message_arrived = false;
 			printf((mqtt_message + "\r\n").c_str());
@@ -314,8 +300,7 @@ int main(void) {
 			spt_updated = std::stoi(set_point);
 
 			if (strncmp("false", set_mode, 5) == 0) {
-				freq_fan.write(spt_updated*10);
-				Sleep(500);
+				modbus.set_speed(spt_updated*10);
 				freq->setValue(spt_updated);
 				t_freq->setValue(spt_updated);
 				modes->setValue(0);
@@ -329,7 +314,9 @@ int main(void) {
 			memset(tokens, 0 , 256);
 		}
 #endif
+		//if in auto mode
 		if(modes->getValue() == 1){
+
 			int tolerance = 2;
 			//printf("cf:%d s:%d  c:%d  t:%d\n",current_freq, freq->getValue(), current_pressure, t_pres->getValue());
 			if(abs(t_pres->getValue() - current_pressure) > tolerance){
@@ -339,25 +326,25 @@ int main(void) {
 					current_freq += diff_;
 					/* limiting the values within the range */
 					if(current_freq > 100) current_freq = 100;
-					if(current_freq < 0) current_freq = 0;
+					else if(current_freq < 0) current_freq = 0;
 				}
-			freq_fan.write(current_freq*10);
+			modbus.set_speed(current_freq*10);
 			Sleep(500);
 			freq->setValue(current_freq);
 			//printf("nr:%d cf:%d s:%d  c:%d  t:%d\n",nr, current_freq, freq->getValue(), current_pressure, t_pres->getValue());
 		}
 
-		std::string sample = sample_json(nr, freq->getValue(), spt_updated, pres->getValue(), m_sta_mode[modes->getValue()], m_sta[mqtt_status], (co2_.read()/10)*100, (rh_.read()/10), (temp_.read()/10));
+		std::string sample = sample_json(nr, freq->getValue(), spt_updated, pres->getValue(), m_sta_mode[modes->getValue()], m_sta[mqtt_status], modbus.get_co2(), modbus.get_rh(), modbus.get_temp());
 		mqtt_status = mqtt.publish(MQTT_TOPIC_SEND, sample, sample.length());
 
 		nr++;
 		menu.event(MenuItem::show);
 		//mqtt.yield(200);
 
-
 		/* feed the WatchDog timer */
 		Chip_WWDT_Feed(LPC_WWDT);
     }
+
     return 0 ;
 }
 
