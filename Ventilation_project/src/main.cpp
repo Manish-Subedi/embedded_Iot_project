@@ -274,7 +274,7 @@ int main(void) {
 			menu.event(MenuItem::show);
 			memset(tokens, 0 , 256);
 		}
-#endif
+
 		/* if in auto mode */
 		if(modes->getValue() == 1){
 			int tolerance = 2;
